@@ -5,15 +5,15 @@ import { useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 
 const props = defineProps(['excludeNovelId'])
+import { watch } from 'vue'
 const router = useRouter()
 const novels = ref([])
 
-onMounted(async () => {
+async function fetchRecommendations() {
     // Fetch a batch of novels
     const { data } = await supabase
         .from('novels')
         .select('id, title, slug, image_url, author, author_romaji, romaji_title')
-        // order random? No, just order existing
         .limit(20)
     
     if (data) {
@@ -23,11 +23,12 @@ onMounted(async () => {
         candidates.sort(() => 0.5 - Math.random())
         novels.value = candidates.slice(0, 3)
     }
-})
+}
+
+onMounted(fetchRecommendations)
+watch(() => props.excludeNovelId, fetchRecommendations)
 
 const goNovel = (slug) => {
-    // If we are already in chapter view, we might want to reload or push
-    // Since we are using slug in params, push should trigger update
     router.push({ name: 'novel', params: { slug } })
 }
 </script>

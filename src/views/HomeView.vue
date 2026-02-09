@@ -68,6 +68,15 @@ function timeAgo(dateStr) {
 const goNovel = (slug) => router.push({ name: 'novel', params: { slug } })
 const goChapter = (slug, num) => router.push({ name: 'chapter', params: { slug, chapter: num } })
 
+// ── Preview ──
+const showPreview = ref(false)
+const previewNovel = ref(null)
+
+function openPreview(novel) {
+  previewNovel.value = novel
+  showPreview.value = true
+}
+
 // ── Data Fetching ──
 onMounted(async () => {
   // Featured novels for carousel
@@ -241,8 +250,8 @@ onUnmounted(() => clearInterval(slideTimer))
               <div class="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
                 <img :src="novel.image_url"
                   class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
-                  @click="goNovel(novel.slug)" alt="" />
-                <div class="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/10 rounded-xl" />
+                  @click.stop="openPreview(novel)" alt="" />
+                <div class="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/10 rounded-xl pointer-events-none" />
               </div>
               <!-- Info -->
               <div class="flex-1 min-w-0 flex flex-col justify-center">
@@ -314,6 +323,51 @@ onUnmounted(() => clearInterval(slideTimer))
 
     <!-- ───── Footer ───── -->
     <SiteFooter />
+
+    <!-- ───── Image Preview Overlay ───── -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="showPreview && previewNovel" 
+          @click="showPreview = false"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-10 cursor-zoom-out">
+          
+          <!-- Close button -->
+          <button 
+            @click="showPreview = false"
+            class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+
+          <Transition
+            appear
+            enter-active-class="transition duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+          >
+            <div class="relative max-w-full max-h-full">
+              <img 
+                :src="previewNovel.image_url" 
+                class="max-w-full max-h-[85vh] h-auto w-auto rounded-lg shadow-2xl object-contain ring-1 ring-white/10" 
+                :alt="previewNovel.title" 
+                @click.stop
+              />
+              <div class="mt-4 text-center">
+                <h3 class="text-white font-medium text-lg">{{ previewNovel.title }}</h3>
+                <p v-if="previewNovel.romaji_title" class="text-white/50 text-sm italic">{{ previewNovel.romaji_title }}</p>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 

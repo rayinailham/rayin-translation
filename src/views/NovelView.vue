@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import NovelRecommendations from '../components/NovelRecommendations.vue'
@@ -30,6 +30,12 @@ const tags = computed(() => {
 
 const sortedChapters = computed(() =>
   [...chapters.value].sort((a, b) => a.chapter_number - b.chapter_number)
+)
+
+const sortAsc = ref(false)
+
+const displayChapters = computed(() =>
+  sortAsc.value ? sortedChapters.value : [...sortedChapters.value].reverse()
 )
 
 const chapterCount = computed(() => chapters.value.length)
@@ -69,6 +75,8 @@ async function fetchData() {
   }
 
   loaded.value = true
+  await nextTick()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 onMounted(fetchData)
@@ -80,7 +88,13 @@ const goChapter = (num) =>
 </script>
 
 <template>
-  <div class="min-h-screen bg-white dark:bg-neutral-950 transition-colors">
+  <div class="min-h-screen bg-white dark:bg-neutral-950 transition-colors relative">
+
+    <!-- ───── Banner ───── -->
+    <div v-if="novel?.banner_url" class="absolute top-0 left-0 w-full h-[500px] z-0 overflow-hidden pointer-events-none fade-in">
+      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-60 dark:opacity-40 blur-[2px]" style="object-position: center 25%" alt="" />
+      <div class="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent dark:from-neutral-950 dark:via-neutral-950/50 dark:to-transparent" />
+    </div>
 
     <!-- ───── Header ───── -->
     <header
@@ -98,7 +112,7 @@ const goChapter = (num) =>
     <template v-if="novel">
 
       <!-- ───── Novel Info ───── -->
-      <div class="max-w-5xl mx-auto px-4 pt-10 pb-8">
+      <div class="relative z-10 max-w-5xl mx-auto px-4 pt-10 pb-8">
         <div class="flex flex-col sm:flex-row gap-6 sm:gap-8">
 
           <!-- Cover -->
@@ -165,7 +179,7 @@ const goChapter = (num) =>
       </div>
 
       <!-- ───── Content ───── -->
-      <div class="max-w-5xl mx-auto px-4 pb-16">
+      <div class="relative z-10 max-w-5xl mx-auto px-4 pb-16">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
           <!-- Main Column -->
@@ -181,10 +195,21 @@ const goChapter = (num) =>
 
             <!-- Chapters -->
             <section id="chapters">
-              <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">{{ chapterCount }} Chapters</h2>
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400">{{ chapterCount }} Chapters</h2>
+                <button 
+                  @click="sortAsc = !sortAsc" 
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-medium text-neutral-600 dark:text-neutral-300 transition-colors"
+                >
+                  <span>{{ sortAsc ? 'Oldest First' : 'Newest First' }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" :class="{ 'rotate-180': sortAsc }">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+              </div>
 
               <div class="border border-neutral-200 dark:border-neutral-800 rounded-lg divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden">
-                <div v-for="ch in sortedChapters.slice().reverse()" :key="ch.id" @click="goChapter(ch.chapter_number)"
+                <div v-for="ch in displayChapters" :key="ch.id" @click="goChapter(ch.chapter_number)"
                   class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition text-sm group">
                   <div class="flex items-center gap-3 min-w-0">
                     <span class="text-neutral-400 font-mono text-xs w-7 flex-shrink-0">{{ String(ch.chapter_number).padStart(2, '0') }}</span>

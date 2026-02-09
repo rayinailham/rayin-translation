@@ -1,9 +1,8 @@
 // Vercel Edge Middleware – serves OG-enriched HTML to social-media crawlers
 // so link previews show the novel cover instead of the generic site logo.
 
-const SUPABASE_URL = 'https://ykceernevnnsbncuhygl.supabase.co'
-const SUPABASE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrY2Vlcm5ldm5uc2JuY3VoeWdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NjQ1MTIsImV4cCI6MjA4NjE0MDUxMn0.QmZIlyBXWSz0m6Pg61xBFEKyTVE3dQxWCRj3fTVujGw'
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = process.env.VITE_SUPABASE_KEY
 
 const BOT_UA = [
   'facebookexternalhit',

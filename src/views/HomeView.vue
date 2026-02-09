@@ -150,52 +150,52 @@ onUnmounted(() => clearInterval(slideTimer))
     </header>
 
     <!-- ───── Carousel ───── -->
-    <section v-if="featuredNovels.length" class="relative overflow-hidden bg-black h-96 md:h-[500px]">
+    <section v-if="featuredNovels.length" class="relative overflow-hidden bg-black h-[520px] sm:h-[450px] md:h-[500px]">
       <Transition name="fade" mode="out-in">
         <div :key="currentSlide" class="absolute inset-0">
           <!-- Background -->
           <div class="absolute inset-0">
             <img v-if="currentFeatured?.banner_url" :src="currentFeatured.banner_url"
-              class="w-full h-full object-cover opacity-40 blur-sm scale-105" style="object-position: center 25%" alt="" />
-            <div class="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/50" />
+              class="w-full h-full object-cover opacity-40 blur-sm scale-110" style="object-position: center 25%" alt="" />
+            <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black sm:bg-gradient-to-r sm:from-black/90 sm:via-black/70 sm:to-black/30" />
           </div>
-
+ 
           <!-- Content -->
           <div
-            class="relative z-10 max-w-7xl mx-auto px-4 h-full flex flex-col md:flex-row gap-6 md:gap-10 items-center justify-center">
+            class="relative z-10 max-w-7xl mx-auto px-6 h-full flex flex-col sm:flex-row gap-6 sm:gap-10 items-center justify-center pt-8 sm:pt-0">
             <!-- Cover -->
-            <div class="w-36 md:w-48 flex-shrink-0 cursor-pointer" @click="goNovel(currentFeatured?.slug)">
-              <img :src="currentFeatured?.image_url" class="w-full aspect-[2/3] object-cover rounded-lg shadow-2xl"
+            <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105" @click="goNovel(currentFeatured?.slug)">
+              <img :src="currentFeatured?.image_url" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
                 alt="" />
             </div>
-
+ 
             <!-- Info -->
-            <div class="flex-1 text-white text-center md:text-left min-w-0">
-              <p class="text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-2">Popular New Titles
-              </p>
+            <div class="flex-1 text-white text-center sm:text-left min-w-0 pb-12 sm:pb-0">
+              <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2 opacity-80">Featured Novel</p>
               <h2
-                class="text-xl md:text-3xl font-bold leading-tight cursor-pointer hover:underline decoration-1 underline-offset-4"
+                class="text-xl sm:text-2xl md:text-3xl font-black leading-tight cursor-pointer hover:text-neutral-200 transition-colors line-clamp-2 md:line-clamp-none"
                 @click="goNovel(currentFeatured?.slug)">
                 {{ currentFeatured?.title }}
               </h2>
-              <div v-if="currentFeatured?.romaji_title" class="text-xs md:text-sm text-neutral-400 mt-1 italic">{{ currentFeatured.romaji_title }}</div>
-              <div v-if="currentFeatured?.original_jp_title" class="text-[10px] text-neutral-500 mt-0.5">{{ currentFeatured.original_jp_title }}</div>
-
+              <div v-if="currentFeatured?.romaji_title" class="text-xs md:text-sm text-neutral-400 mt-2 italic line-clamp-1">{{ currentFeatured.romaji_title }}</div>
+              
               <!-- Genres -->
-              <div class="flex flex-wrap justify-center md:justify-start gap-2 mt-3">
+              <div class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-4">
                 <span v-for="g in parsedGenres" :key="g"
-                  class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-white/15 rounded">
+                  class="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-white/10 backdrop-blur-md border border-white/5 rounded shadow-sm">
                   {{ g }}
                 </span>
               </div>
-
+ 
               <!-- Synopsis -->
-              <p class="mt-4 text-sm text-neutral-300 line-clamp-3 leading-relaxed max-w-2xl">
+              <p class="mt-4 text-xs sm:text-sm text-neutral-300 line-clamp-2 sm:line-clamp-3 leading-relaxed max-w-2xl opacity-90">
                 {{ currentFeatured?.synopsis }}
               </p>
-
+ 
               <!-- Author -->
-              <p class="mt-3 text-xs text-neutral-500 italic">{{ currentFeatured?.author_romaji || currentFeatured?.author }}</p>
+              <p class="mt-4 text-[10px] sm:text-xs text-neutral-500 font-medium tracking-wide">
+                by <span class="text-neutral-300">{{ currentFeatured?.author_romaji || currentFeatured?.author }}</span>
+              </p>
             </div>
           </div>
         </div>

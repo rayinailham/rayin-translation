@@ -76,7 +76,14 @@ async function fetchData() {
       .eq('chapter_number', chapterNum)
       .single()
 
-    if (chapterData) chapter.value = chapterData
+    if (chapterData) {
+      chapter.value = chapterData
+      // Increment view count
+      supabase.from('chapters')
+        .update({ views: (chapterData.views || 0) + 1 })
+        .eq('id', chapterData.id)
+        .then(() => {}) // Fire and forget
+    }
   }
 
   loaded.value = true

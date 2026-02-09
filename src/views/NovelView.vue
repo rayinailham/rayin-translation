@@ -11,6 +11,7 @@ const router = useRouter()
 const novel = ref(null)
 const chapters = ref([])
 const loaded = ref(false)
+const showImagePreview = ref(false)
 
 // ── Computed ──
 const genres = computed(() => {
@@ -33,9 +34,8 @@ const sortedChapters = computed(() =>
 
 const chapterCount = computed(() => chapters.value.length)
 
-const ratingStars = computed(() => {
-  const r = novel.value?.rating || 0
-  return Array.from({ length: 5 }, (_, i) => i < Math.round(r))
+const totalViews = computed(() => {
+  return chapters.value.reduce((sum, ch) => sum + (ch.views || 0), 0)
 })
 
 function formatDate(dateStr) {
@@ -61,7 +61,7 @@ async function fetchData() {
 
     const { data: chapterData } = await supabase
       .from('chapters')
-      .select('id, chapter_number, title, created_at')
+      .select('id, chapter_number, title, created_at, views')
       .eq('novel_id', novelData.id)
       .order('chapter_number', { ascending: true })
 
@@ -103,8 +103,14 @@ const goChapter = (num) =>
 
           <!-- Cover -->
           <div class="w-36 sm:w-44 flex-shrink-0 mx-auto sm:mx-0">
-            <div class="relative aspect-[2/3] rounded-lg overflow-hidden shadow-md">
-              <img :src="novel.image_url" class="w-full h-full object-cover" alt="" />
+            <div 
+              @click="showImagePreview = true"
+              class="relative aspect-[2/3] rounded-lg overflow-hidden shadow-md cursor-zoom-in hover:opacity-95 transition-all group"
+            >
+              <img :src="novel.image_url" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" :alt="novel.title" />
+              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </div>
             </div>
           </div>
 
@@ -128,11 +134,7 @@ const goChapter = (num) =>
                 {{ novel.status }}
               </span>
               <span>{{ chapterCount }} chapters</span>
-              <span v-if="novel.rating" class="flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="text-amber-400"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                {{ novel.rating }}
-              </span>
-              <span>{{ (novel.views || 0).toLocaleString() }} views</span>
+              <span>{{ totalViews.toLocaleString() }} views</span>
             </div>
 
             <!-- Genres -->
@@ -225,11 +227,7 @@ const goChapter = (num) =>
                 </div>
                 <div class="flex justify-between">
                   <dt class="text-neutral-500">Views</dt>
-                  <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ (novel.views || 0).toLocaleString() }}</dd>
-                </div>
-                <div class="flex justify-between">
-                  <dt class="text-neutral-500">Followers</dt>
-                  <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ (novel.follower_count || 0).toLocaleString() }}</dd>
+                  <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ totalViews.toLocaleString() }}</dd>
                 </div>
               </dl>
 
@@ -253,5 +251,50 @@ const goChapter = (num) =>
 
     <!-- ───── Footer ───── -->
     <SiteFooter />
+
+    <!-- ───── Image Preview Overlay ───── -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="showImagePreview" 
+          @click="showImagePreview = false"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-10 cursor-zoom-out">
+          
+          <!-- Close button -->
+          <button 
+            @click="showImagePreview = false"
+            class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+
+          <Transition
+            appear
+            enter-active-class="transition duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)"
+            enter-from-class="opacity-0 scale-95 translate-y-4"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+          >
+            <div class="relative max-w-full max-h-full">
+              <img 
+                :src="novel.image_url" 
+                class="max-w-full max-h-[85vh] h-auto w-auto rounded-lg shadow-2xl object-contain ring-1 ring-white/10" 
+                :alt="novel.title" 
+                @click.stop
+              />
+              <div class="mt-4 text-center">
+                <h3 class="text-white font-medium text-lg">{{ novel.title }}</h3>
+                <p v-if="novel.romaji_title" class="text-white/50 text-sm italic">{{ novel.romaji_title }}</p>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

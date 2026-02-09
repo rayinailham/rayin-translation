@@ -34,22 +34,22 @@ const goNovel = (slug) => {
 </script>
 
 <template>
-  <div class="mt-20 pt-12 border-t border-gray-100 dark:border-gray-800">
-      <h3 class="text-xl font-bold tracking-tight mb-8 text-center">You Might Also Like</h3>
+  <div class="mt-12 pt-8 md:mt-20 md:pt-12 border-t border-neutral-100 dark:border-neutral-800">
+      <h3 class="text-lg md:text-xl font-bold tracking-tight mb-6 md:mb-8 text-center text-neutral-800 dark:text-neutral-200">You Might Also Like</h3>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
           <div 
             v-for="novel in novels" 
             :key="novel.id"
             @click="goNovel(novel.slug)"
-            class="group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/20 p-4 rounded-xl transition"
+            class="group cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/20 p-2 sm:p-4 rounded-xl transition"
           >
-              <div class="aspect-[2/3] bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden mb-4 shadow-sm group-hover:shadow-md transition">
-                  <img :src="novel.image_url" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" />
+              <div class="aspect-[2/3] bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden mb-3 md:mb-4 shadow-sm group-hover:shadow-md transition">
+                  <img :src="novel.image_url" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" :alt="novel.title" />
               </div>
-              <h4 class="font-bold text-base line-clamp-2 mb-1 group-hover:underline decoration-1 underline-offset-4">{{ novel.title }}</h4>
-              <p v-if="novel.romaji_title" class="text-[10px] text-gray-400 italic mb-1 truncate">{{ novel.romaji_title }}</p>
-              <p class="text-xs text-gray-500">{{ novel.author_romaji || novel.author }}</p>
+              <h4 class="font-bold text-sm md:text-base line-clamp-2 mb-1 group-hover:underline decoration-1 underline-offset-4 text-neutral-800 dark:text-neutral-100">{{ novel.title }}</h4>
+              <p v-if="novel.romaji_title" class="text-[9px] md:text-[10px] text-neutral-400 italic mb-1 truncate">{{ novel.romaji_title }}</p>
+              <p class="text-[11px] md:text-xs text-neutral-500">{{ novel.author_romaji || novel.author }}</p>
           </div>
       </div>
   </div>

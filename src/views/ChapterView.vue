@@ -5,9 +5,13 @@ import { supabase } from '../supabase'
 import ChapterSidebar from '../components/ChapterSidebar.vue'
 import NovelRecommendations from '../components/NovelRecommendations.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import { marked } from 'marked'
+import { useAuthStore } from '../stores/auth'
+import GlobalHeader from '../components/GlobalHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const novel = ref(null)
 const chapter = ref(null)
@@ -40,11 +44,8 @@ const nextChapter = computed(() =>
 // ── Render Markdown ──
 const renderedContent = computed(() => {
   if (!chapter.value?.content) return ''
-  if (typeof window.marked?.parse === 'function') {
-    return window.marked.parse(chapter.value.content)
-  }
-  // Fallback: newlines to <br>
-  return chapter.value.content.replace(/\n/g, '<br>')
+  // Use imported marked
+  return marked(chapter.value.content)
 })
 
 // ── Data Fetching ──
@@ -104,22 +105,23 @@ const goChapter = (num) =>
   <div class="min-h-screen bg-white dark:bg-black transition-all duration-300 ease-in-out" :class="{ 'md:pr-80': sidebarOpen }">
 
     <!-- ───── Top Bar ───── -->
-    <header
-      class="sticky top-0 z-30 bg-white/90 dark:bg-black/90 backdrop-blur border-b border-neutral-100 dark:border-neutral-800">
-      <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
-        <div class="flex items-center gap-3 min-w-0 mr-4">
-          <router-link to="/" class="flex items-center gap-1.5 text-sm font-bold tracking-tight hover:opacity-80 transition flex-shrink-0">
-            <img src="/Logo Rayin Translation.png" alt="Rayin Translation" class="h-5 w-5 object-contain" />
-            Rayin Translation
-          </router-link>
-          <span class="text-neutral-300 dark:text-neutral-700 flex-shrink-0">/</span>
-          <router-link :to="{ name: 'novel', params: { slug: route.params.slug } }"
-            class="text-sm text-neutral-500 hover:text-black dark:hover:text-white transition truncate">
+    <GlobalHeader>
+       <template #branding>
+        <span class="text-neutral-300 dark:text-neutral-700 flex-shrink-0">/</span>
+        <router-link :to="{ name: 'novel', params: { slug: route.params.slug } }"
+            class="text-sm text-neutral-500 hover:text-black dark:hover:text-white transition truncate max-w-[150px] sm:max-w-xs">
             {{ novel?.title || 'Back' }}
-          </router-link>
-        </div>
-      </div>
-    </header>
+        </router-link>
+        <span v-if="chapter" class="text-neutral-300 dark:text-neutral-700 flex-shrink-0">/</span>
+        <span v-if="chapter" class="text-sm font-medium whitespace-nowrap">Ch. {{ chapter.chapter_number }}</span>
+        
+        <!-- SUPERADMIN: Edit Chapter Button -->
+        <router-link v-if="auth.isSuperAdmin && chapter" :to="`/admin/edit-chapter/${chapter.id}`" 
+            class="ml-3 text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900 hover:bg-red-100 transition">
+            Edit
+        </router-link>
+      </template>
+    </GlobalHeader>
 
     <template v-if="chapter">
 

@@ -1,8 +1,13 @@
 
 <script setup>
+
 import { onMounted } from 'vue'
+import { useAuthStore } from './stores/auth'
+
+const auth = useAuthStore()
 
 function applyTheme(theme) {
+
   const html = document.documentElement
   if (
     theme === 'dark' ||
@@ -14,7 +19,9 @@ function applyTheme(theme) {
   }
 }
 
+
 onMounted(() => {
+  auth.checkUser()
   const theme = localStorage.getItem('theme') || 'system'
   applyTheme(theme)
 

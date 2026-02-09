@@ -74,7 +74,7 @@ export default async function middleware(request) {
 
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/novels?slug=eq.${encodeURIComponent(slug)}&select=title,synopsis,image_url,author_romaji,author`,
+      `${SUPABASE_URL}/rest/v1/novels?slug=eq.${encodeURIComponent(slug)}&select=title,synopsis,image_url,author`,
       {
         headers: {
           apikey: SUPABASE_KEY,
@@ -88,7 +88,7 @@ export default async function middleware(request) {
     if (!novel) return undefined
 
     const title = esc(novel.title || 'Rayin Translation')
-    const author = esc(novel.author_romaji || novel.author || '')
+    const author = esc(novel.author || '')
     const description = esc(
       trimDesc(novel.synopsis) ||
         `Read ${novel.title} translated to English at Rayin Translation`

@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+
 import { supabase } from '../supabase'
 import SiteFooter from '../components/SiteFooter.vue'
+import GlobalHeader from '../components/GlobalHeader.vue'
 
 const router = useRouter()
 
@@ -110,7 +112,7 @@ onMounted(async () => {
   // Popular — All Time
   const { data: allTime } = await supabase
     .from('novels')
-    .select('id, title, slug, image_url, author, author_romaji')
+    .select('id, title, slug, image_url, author')
     .order('created_at', { ascending: true })
     .limit(10)
   if (allTime) popularData.value.all = allTime
@@ -119,7 +121,7 @@ onMounted(async () => {
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
   const { data: weekly } = await supabase
     .from('novels')
-    .select('id, title, slug, image_url, author, author_romaji')
+    .select('id, title, slug, image_url, author')
     .gte('updated_at', weekAgo)
     .order('updated_at', { ascending: false })
     .limit(10)
@@ -129,7 +131,7 @@ onMounted(async () => {
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString()
   const { data: monthly } = await supabase
     .from('novels')
-    .select('id, title, slug, image_url, author, author_romaji')
+    .select('id, title, slug, image_url, author')
     .gte('updated_at', monthAgo)
     .order('updated_at', { ascending: false })
     .limit(10)
@@ -143,20 +145,9 @@ onUnmounted(() => clearInterval(slideTimer))
   <div class="min-h-screen bg-white dark:bg-black transition-colors">
 
     <!-- ───── Header ───── -->
-    <header class="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur border-b border-neutral-200 dark:border-neutral-800">
-      <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-        <router-link to="/" class="flex items-center gap-2 text-lg font-bold tracking-tight hover:opacity-80 transition">
-          <img src="/Logo Rayin Translation.png" alt="Rayin Translation" class="h-6 w-6 object-contain" />
-          Rayin Translation
-        </router-link>
-        <button class="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-900 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-          </svg>
-        </button>
-      </div>
-    </header>
+
+    <!-- ───── Header ───── -->
+    <GlobalHeader />
 
     <!-- ───── Carousel ───── -->
     <section v-if="featuredNovels.length" class="relative overflow-hidden bg-black h-[520px] sm:h-[450px] md:h-[500px]">
@@ -186,7 +177,6 @@ onUnmounted(() => clearInterval(slideTimer))
                 @click="goNovel(currentFeatured?.slug)">
                 {{ currentFeatured?.title }}
               </h2>
-              <div v-if="currentFeatured?.romaji_title" class="text-xs md:text-sm text-neutral-400 mt-2 italic line-clamp-1">{{ currentFeatured.romaji_title }}</div>
               
               <!-- Genres -->
               <div class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-4">
@@ -203,7 +193,7 @@ onUnmounted(() => clearInterval(slideTimer))
  
               <!-- Author -->
               <p class="mt-4 text-[10px] sm:text-xs text-neutral-500 font-medium tracking-wide">
-                by <span class="text-neutral-300">{{ currentFeatured?.author_romaji || currentFeatured?.author }}</span>
+                by <span class="text-neutral-300">{{ currentFeatured?.author }}</span>
               </p>
             </div>
           </div>
@@ -259,7 +249,7 @@ onUnmounted(() => clearInterval(slideTimer))
                   @click="goNovel(novel.slug)">
                   {{ novel.title }}
                 </h3>
-                <p class="text-[11px] font-medium text-neutral-400 mt-0.5 tracking-wide">{{ novel.author_romaji || novel.author }}</p>
+                <p class="text-[11px] font-medium text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
 
                 <div class="mt-3 space-y-1.5">
                   <div v-for="ch in novel.chapters" :key="ch.id"
@@ -311,7 +301,7 @@ onUnmounted(() => clearInterval(slideTimer))
               <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" alt="" />
               <div class="flex-1 min-w-0">
                 <h4 class="text-sm font-medium truncate">{{ novel.title }}</h4>
-                <p class="text-[11px] text-neutral-400 truncate">{{ novel.author_romaji || novel.author }}</p>
+                <p class="text-[11px] text-neutral-400 truncate">{{ novel.author }}</p>
               </div>
             </div>
 
@@ -361,7 +351,6 @@ onUnmounted(() => clearInterval(slideTimer))
               />
               <div class="mt-4 text-center">
                 <h3 class="text-white font-medium text-lg">{{ previewNovel.title }}</h3>
-                <p v-if="previewNovel.romaji_title" class="text-white/50 text-sm italic">{{ previewNovel.romaji_title }}</p>
               </div>
             </div>
           </Transition>

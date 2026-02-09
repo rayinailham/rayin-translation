@@ -4,14 +4,18 @@ import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import NovelRecommendations from '../components/NovelRecommendations.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import { useAuthStore } from '../stores/auth'
+import GlobalHeader from '../components/GlobalHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const novel = ref(null)
 const chapters = ref([])
 const loaded = ref(false)
 const showImagePreview = ref(false)
+const synopsisExpanded = ref(false)
 
 // ── Computed ──
 const genres = computed(() => {
@@ -55,6 +59,7 @@ function formatDate(dateStr) {
 async function fetchData() {
   const slug = route.params.slug
   loaded.value = false
+  synopsisExpanded.value = false
 
   const { data: novelData } = await supabase
     .from('novels')
@@ -97,17 +102,12 @@ const goChapter = (num) =>
     </div>
 
     <!-- ───── Header ───── -->
-    <header
-      class="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur border-b border-neutral-200 dark:border-neutral-800">
-      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
-        <router-link to="/" class="flex items-center gap-2 text-lg font-bold tracking-tight hover:opacity-80 transition flex-shrink-0">
-          <img src="/Logo Rayin Translation.png" alt="Rayin Translation" class="h-6 w-6 object-contain" />
-          Rayin Translation
-        </router-link>
+    <GlobalHeader>
+      <template #branding>
         <span class="text-neutral-300 dark:text-neutral-700">/</span>
         <span class="text-sm text-neutral-500 truncate">{{ novel?.title }}</span>
-      </div>
-    </header>
+      </template>
+    </GlobalHeader>
 
     <template v-if="novel">
 
@@ -132,13 +132,9 @@ const goChapter = (num) =>
           <div class="flex-1 min-w-0 text-center sm:text-left">
             <h1 class="text-xl sm:text-2xl font-bold leading-tight text-neutral-900 dark:text-neutral-50">{{ novel.title }}</h1>
 
-            <div v-if="novel.romaji_title" class="text-sm text-neutral-500 italic mt-1">{{ novel.romaji_title }}</div>
-            <div v-if="novel.original_jp_title" class="text-xs text-neutral-400 mt-0.5">{{ novel.original_jp_title }}</div>
-
             <!-- Author -->
             <div class="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
-              <span>by <span class="font-medium text-neutral-900 dark:text-neutral-100">{{ novel.author_romaji || novel.author || 'Unknown' }}</span></span>
-              <span v-if="novel.author_romaji && novel.author" class="text-neutral-400"> ({{ novel.author }})</span>
+              <span>by <span class="font-medium text-neutral-900 dark:text-neutral-100">{{ novel.author || 'Unknown' }}</span></span>
             </div>
 
             <!-- Inline Stats -->
@@ -168,11 +164,17 @@ const goChapter = (num) =>
             </div>
 
             <!-- Start Reading -->
-            <div class="mt-6 flex justify-center sm:justify-start">
+            <div class="mt-6 flex flex-wrap justify-center sm:justify-start gap-4">
               <button v-if="sortedChapters.length" @click="goChapter(sortedChapters[0].chapter_number)"
                 class="px-6 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-lg hover:opacity-90 active:scale-[0.98] transition-all">
                 Start Reading
               </button>
+              
+              <!-- SUPERADMIN: Edit Novel -->
+              <router-link v-if="auth.isSuperAdmin" :to="`/admin/edit-novel/${novel.slug}`" 
+                class="px-6 py-2.5 border border-red-500 text-red-500 text-sm font-semibold rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 transition-all">
+                Edit Novel
+              </router-link>
             </div>
           </div>
         </div>
@@ -188,15 +190,44 @@ const goChapter = (num) =>
             <!-- Synopsis -->
             <section>
               <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Synopsis</h2>
-              <p class="text-[15px] leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-line">
-                {{ novel.synopsis || 'No synopsis available.' }}
-              </p>
+              <div class="relative">
+                <div 
+                  class="text-[15px] leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-line transition-all duration-500 ease-in-out overflow-hidden relative"
+                  :class="[synopsisExpanded ? 'max-h-[2000px]' : 'max-h-[160px]']"
+                >
+                  {{ novel.synopsis || 'No synopsis available.' }}
+                  
+                  <!-- Gradient overlay for "Show More" when collapsed -->
+                  <div v-if="!synopsisExpanded && novel.synopsis?.length > 400" 
+                    class="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white dark:from-neutral-950 to-transparent pointer-events-none" 
+                  />
+                </div>
+                
+                <button 
+                  v-if="novel.synopsis?.length > 400"
+                  @click="synopsisExpanded = !synopsisExpanded"
+                  class="mt-3 text-sm font-bold text-neutral-900 dark:text-white hover:opacity-70 transition-opacity flex items-center gap-1.5 focus:outline-none"
+                >
+                  <span>{{ synopsisExpanded ? 'Show Less' : 'Show More' }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300" :class="{ 'rotate-180': synopsisExpanded }">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+              </div>
             </section>
 
             <!-- Chapters -->
             <section id="chapters">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400">{{ chapterCount }} Chapters</h2>
+                <div class="flex items-center gap-4">
+                  <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400">{{ chapterCount }} Chapters</h2>
+                  <!-- SUPERADMIN: Add Chapter -->
+                  <router-link v-if="auth.isSuperAdmin" :to="`/admin/add-chapter/${novel.slug}`"
+                    class="text-xs font-bold text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded hover:bg-red-200 dark:hover:bg-red-800/40 transition">
+                    + ADD CHAPTER
+                  </router-link>
+                </div>
+
                 <button 
                   @click="sortAsc = !sortAsc" 
                   class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-medium text-neutral-600 dark:text-neutral-300 transition-colors"
@@ -215,7 +246,13 @@ const goChapter = (num) =>
                     <span class="text-neutral-400 font-mono text-xs w-7 flex-shrink-0">{{ String(ch.chapter_number).padStart(2, '0') }}</span>
                     <span class="truncate font-medium text-neutral-700 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">{{ ch.title }}</span>
                   </div>
-                  <span class="text-[11px] text-neutral-400 flex-shrink-0 ml-4">{{ formatDate(ch.created_at) }}</span>
+                  <div class="flex items-center gap-3">
+                    <span class="text-[11px] text-neutral-400 flex-shrink-0">{{ formatDate(ch.created_at) }}</span>
+                    <!-- SUPERADMIN: Edit Chapter (small icon) -->
+                    <button v-if="auth.isSuperAdmin" @click.stop="router.push(`/admin/edit-chapter/${ch.id}`)" class="text-neutral-400 hover:text-red-500 p-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                    </button>
+                  </div>
                 </div>
 
                 <p v-if="!sortedChapters.length" class="text-sm text-neutral-400 text-center py-12">
@@ -314,7 +351,6 @@ const goChapter = (num) =>
               />
               <div class="mt-4 text-center">
                 <h3 class="text-white font-medium text-lg">{{ novel.title }}</h3>
-                <p v-if="novel.romaji_title" class="text-white/50 text-sm italic">{{ novel.romaji_title }}</p>
               </div>
             </div>
           </Transition>

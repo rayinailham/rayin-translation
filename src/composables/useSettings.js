@@ -1,21 +1,23 @@
 import { ref } from 'vue'
 import { supabase } from '../supabase'
 
+const DEFAULT_AI_SETTINGS = Object.freeze({
+    temperature: 0.7,
+    top_p: 1.0,
+    top_k: 0,
+    max_tokens: 8192,
+    reasoning: false,
+    model: 'openrouter/pony-alpha',
+    system_prompt: '',
+})
+
 export function useSettings(novel) {
     const presetsList = ref([])
     const activePresetId = ref(null)
     const showPromptEditor = ref(false)
     const savingPreset = ref(false)
     
-    const aiSettings = ref({
-        temperature: 0.7,
-        top_p: 1.0,
-        top_k: 0,
-        max_tokens: 8192,
-        reasoning: false,
-        model: 'openrouter/pony-alpha',
-        system_prompt: '',
-    })
+    const aiSettings = ref({ ...DEFAULT_AI_SETTINGS })
 
     async function loadPresets() {
         const { data } = await supabase
@@ -52,15 +54,7 @@ export function useSettings(novel) {
         const id = event.target.value
         if (id === '__new__') {
             activePresetId.value = null
-            aiSettings.value = {
-                temperature: 0.7,
-                top_p: 1.0,
-                top_k: 0,
-                max_tokens: 8192,
-                reasoning: false,
-                model: 'openrouter/pony-alpha',
-                system_prompt: '',
-            }
+            aiSettings.value = { ...DEFAULT_AI_SETTINGS }
             showPromptEditor.value = true
             return
         }
@@ -79,7 +73,7 @@ export function useSettings(novel) {
                 top_k: aiSettings.value.top_k,
                 max_tokens: aiSettings.value.max_tokens,
                 reasoning: aiSettings.value.reasoning,
-                updated_at: new Date(),
+                updated_at: new Date().toISOString(),
             }
     
             if (activePresetId.value) {
@@ -89,21 +83,37 @@ export function useSettings(novel) {
                     .update(payload)
                     .eq('id', activePresetId.value)
                 if (error) throw error
+                
+                // Update local list
+                const idx = presetsList.value.findIndex(p => p.id === activePresetId.value)
+                if (idx !== -1) {
+                    presetsList.value[idx] = { ...presetsList.value[idx], ...payload }
+                }
             } else {
                 // Create new
                 const name = prompt('Preset name (e.g. "casual", "formal"):')
                 if (!name) { savingPreset.value = false; return }
+                
                 payload.name = name
                 payload.novel_id = novel.value?.id || null
+                payload.is_default = false
+
                 const { data, error } = await supabase
                     .from('translation_settings')
                     .insert(payload)
                     .select()
                 if (error) throw error
-                if (data?.[0]) activePresetId.value = data[0].id
+                
+                if (data?.[0]) {
+                    presetsList.value.push(data[0])
+                    activePresetId.value = data[0].id
+                    // Sort list to keep consistent (Default first, then Name)
+                    presetsList.value.sort((a, b) => {
+                         if (a.is_default === b.is_default) return a.name.localeCompare(b.name)
+                         return a.is_default ? -1 : 1
+                    })
+                }
             }
-    
-            await loadPresets()
         } catch (e) {
             alert('Save failed: ' + e.message)
         } finally {
@@ -128,16 +138,7 @@ export function useSettings(novel) {
         if (defaultPreset) {
             applyPreset(defaultPreset)
         } else {
-            // Fallback if no default preset exists
-            aiSettings.value = {
-                temperature: 0.7,
-                top_p: 1.0,
-                top_k: 0,
-                max_tokens: 8192,
-                reasoning: false,
-                model: 'openrouter/pony-alpha',
-                system_prompt: '',
-            }
+            aiSettings.value = { ...DEFAULT_AI_SETTINGS }
             activePresetId.value = null
         }
     }

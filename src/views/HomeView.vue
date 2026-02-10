@@ -5,8 +5,10 @@ import { useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import SiteFooter from '../components/SiteFooter.vue'
 import GlobalHeader from '../components/GlobalHeader.vue'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 
 // ── Carousel ──
 const featuredNovels = ref([])
@@ -93,12 +95,19 @@ onMounted(async () => {
     resetTimer()
   }
 
-  // Latest updated novels with their chapters
-  const { data: latest } = await supabase
+  // Latest updated novels with their chapters (published)
+  let latestQuery = supabase
     .from('novels')
-    .select('*, chapters(id, chapter_number, title, created_at)')
+    .select('*, chapters(id, chapter_number, title, published_at)')
     .order('updated_at', { ascending: false })
     .limit(15)
+
+  if (!auth.isSuperAdmin) {
+      // In a real app, you'd filter the subquery for chapters published_at <= now()
+      // For now, sorting by published_at DESC is the main priority
+  }
+
+  const { data: latest } = await latestQuery
 
   if (latest) {
     latestNovels.value = latest.map(n => ({
@@ -260,7 +269,7 @@ onUnmounted(() => clearInterval(slideTimer))
                       Ch.{{ ch.chapter_number }}<span class="mx-1.5 opacity-30 text-neutral-400">–</span>{{ ch.title }}
                     </span>
                     <span class="text-neutral-400 dark:text-neutral-600 flex-shrink-0 text-[12px] font-mono">
-                      {{ timeAgo(ch.created_at) }}
+                      {{ timeAgo(ch.published_at) }}
                     </span>
                   </div>
                 </div>

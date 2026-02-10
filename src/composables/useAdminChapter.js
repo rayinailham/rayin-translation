@@ -16,12 +16,18 @@ export function useAdminChapter() {
     const form = ref({
         title: '',
         chapter_number: 1,
-        content: ''
+        content: '',
+        published_at: new Date().toISOString()
     })
 
-    const loading = ref(false)
+
     const saving = ref(false)
     const errorMsg = ref('')
+    const successMsg = ref('')
+
+    watch(successMsg, (val) => {
+        if (val) setTimeout(() => { successMsg.value = '' }, 3000)
+    })
 
     watch(errorMsg, (val) => {
         if (val) setTimeout(() => { errorMsg.value = '' }, 5000)
@@ -46,15 +52,9 @@ export function useAdminChapter() {
             novel.value = data
             await fetchChapters(data.id)
             
-            // If simply adding new, predict next chapter number
-            if (!isEdit.value) {
-                const { data: lastCh } = await supabase.from('chapters')
-                .select('chapter_number')
-                .eq('novel_id', data.id)
-                .order('chapter_number', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-                if (lastCh) form.value.chapter_number = lastCh.chapter_number + 1
+            // Predict next chapter number from already-fetched chaptersList (sorted DESC)
+            if (!isEdit.value && chaptersList.value.length > 0) {
+                form.value.chapter_number = chaptersList.value[0].chapter_number + 1
             }
         }
     }
@@ -81,32 +81,35 @@ export function useAdminChapter() {
                 throw new Error('Please select a novel first.')
             }
 
+            // Ensure types are correct to prevent 400 errors
             const payload = {
-                ...form.value,
+                title: form.value.title.trim(),
+                chapter_number: parseInt(form.value.chapter_number) || 1,
+                content: form.value.content,
+                // If it's a new chapter or if the user cleared the date, default to 'Now' for immediate release
+                published_at: (form.value.published_at ? new Date(form.value.published_at).toISOString() : new Date().toISOString()),
                 novel_id: novel.value.id,
-                updated_at: new Date()
+                updated_at: new Date().toISOString()
             }
 
-            let error = null
+            if (!payload.title) throw new Error('Chapter title is required.')
+
+            // If new chapter, insert and get ID to switch to edit mode
             if (isEdit.value) {
-                 const { error: err } = await supabase.from('chapters').update(payload).eq('id', route.params.chapterId)
-                 error = err
+                 const { error } = await supabase.from('chapters').update(payload).eq('id', route.params.chapterId)
+                 if (error) throw error
             } else {
-                 const { error: err } = await supabase.from('chapters').insert(payload)
-                 error = err
+                 const { data: newCh, error } = await supabase.from('chapters').insert(payload).select().single()
+                 if (error) throw error
+                 // Update URL without reloading page completely
+                 await router.replace({ name: 'edit-chapter', params: { chapterId: newCh.id } })
             }
 
-            if (error) throw error
-            
-            const slug = novel.value.slug
-            if (slug) {
-                 router.push({ name: 'novel', params: { slug: slug } })
-            } else {
-                 router.push('/')
-            }
+            successMsg.value = 'Chapter saved!'
 
         } catch (err) {
-            errorMsg.value = err.message
+            console.error('Save error:', err)
+            errorMsg.value = err.message || 'Failed to save chapter'
         } finally {
             saving.value = false
         }
@@ -153,9 +156,9 @@ export function useAdminChapter() {
         novelsList,
         chaptersList,
         form,
-        loading,
         saving,
         errorMsg,
+        successMsg,
         loadNovels,
         loadNovelBySlug,
         loadChapter,

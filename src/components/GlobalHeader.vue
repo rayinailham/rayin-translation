@@ -44,11 +44,9 @@ const logout = async () => {
 
       <!-- Logo area -->
       <div class="flex items-center gap-4 overflow-hidden">
-        <router-link to="/" class="flex items-center gap-2.5 group transition-all duration-300 flex-shrink-0">
-            <div class="p-1 rounded-lg bg-neutral-900 dark:bg-white group-hover:scale-105 transition-transform duration-300 shadow-sm">
-                <img src="/Logo Rayin Translation.png" alt="Rayin Translation" class="h-5 w-5 object-contain" :class="{'invert': false}" />
-            </div>
-            <span class="hidden sm:inline font-black text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-neutral-950 to-neutral-500 dark:from-white dark:to-neutral-500 uppercase">
+        <router-link to="/" class="flex items-center gap-2 group transition-all duration-300 flex-shrink-0 text-neutral-800 dark:text-neutral-200 hover:opacity-70">
+            <img src="/Logo Rayin Translation.png" alt="Rayin Translation" class="h-6 w-6 object-contain group-hover:scale-105 transition-transform duration-300" />
+            <span class="hidden sm:inline font-bold text-sm tracking-tight">
                 Rayin Translation
             </span>
         </router-link>
@@ -63,7 +61,7 @@ const logout = async () => {
         
         <!-- Admin Tools -->
         <div v-if="auth.isSuperAdmin" class="hidden md:flex items-center">
-            <router-link to="/admin/add-novel" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 text-[10px] font-black uppercase tracking-wider border border-red-500/20">
+            <router-link to="/admin/add-novel" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 text-[10px] font-bold uppercase tracking-wider border border-red-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 Add Novel
             </router-link>
@@ -79,11 +77,11 @@ const logout = async () => {
                     <span class="text-[11px] font-bold text-neutral-900 dark:text-neutral-100 leading-none truncate max-w-[100px]">
                         {{ auth.userProfile?.username || auth.user.email.split('@')[0] }}
                     </span>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 group-hover:text-neutral-500 transition-colors">
+                    <span class="text-[9px] font-bold uppercase tracking-widest text-neutral-400 group-hover:text-neutral-500 transition-colors">
                         Account
                     </span>
                 </div>
-                <div class="h-8 w-8 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center text-[11px] font-black border border-neutral-300 dark:border-neutral-700 shadow-inner group-hover:scale-105 transition-transform">
+                <div class="h-8 w-8 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center text-[11px] font-bold border border-neutral-300 dark:border-neutral-700 shadow-inner group-hover:scale-105 transition-transform">
                     {{ (auth.userProfile?.username || auth.user.email)[0].toUpperCase() }}
                 </div>
             </button>
@@ -99,7 +97,7 @@ const logout = async () => {
             >
                 <div v-if="isProfileDropdownOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-900 border border-neutral-200/50 dark:border-neutral-800/50 rounded-2xl shadow-xl shadow-black/10 dark:shadow-white/5 py-2 z-50 overflow-hidden backdrop-blur-xl">
                     <div class="px-4 py-2 border-b border-neutral-100 dark:border-neutral-800/50 mb-1">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400">Signed in as</p>
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Signed in as</p>
                         <p class="text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate">{{ auth.user.email }}</p>
                     </div>
                     
@@ -123,8 +121,8 @@ const logout = async () => {
             </transition>
         </div>
 
-        <button v-else @click="openAuthModal" class="px-5 py-2 bg-black dark:bg-white text-white dark:text-black text-xs font-black uppercase tracking-[0.1em] rounded-full hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-white/10 hover:-translate-y-0.5 transition-all duration-300 active:scale-95">
-            Sign In
+        <button v-else @click="openAuthModal" class="px-3.5 py-1 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold rounded-full hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-white/10 hover:-translate-y-0.5 transition-all duration-300 active:scale-95">
+            Sign in
         </button>
 
         <!-- Search Icon -->

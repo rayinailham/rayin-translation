@@ -72,7 +72,7 @@ async function fetchData() {
 
     const { data: chapterData } = await supabase
       .from('chapters')
-      .select('id, chapter_number, title, created_at, views')
+      .select('id, chapter_number, title, published_at, views')
       .eq('novel_id', novelData.id)
       .order('chapter_number', { ascending: true })
 
@@ -247,7 +247,7 @@ const goChapter = (num) =>
                     <span class="truncate font-medium text-neutral-700 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">{{ ch.title }}</span>
                   </div>
                   <div class="flex items-center gap-3">
-                    <span class="text-[13px] text-neutral-400 flex-shrink-0">{{ formatDate(ch.created_at) }}</span>
+                    <span class="text-[13px] text-neutral-400 flex-shrink-0">{{ formatDate(ch.published_at) }}</span>
                     <!-- SUPERADMIN: Edit Chapter (small icon) -->
                     <button v-if="auth.isSuperAdmin" @click.stop="router.push(`/admin/edit-chapter/${ch.id}`)" class="text-neutral-400 hover:text-red-500 p-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>

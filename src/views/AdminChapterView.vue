@@ -22,9 +22,9 @@ const {
     novelsList,
     chaptersList,
     form,
-    loading,
     saving,
     errorMsg,
+    successMsg,
     loadNovels,
     loadNovelBySlug,
     loadChapter,
@@ -152,7 +152,8 @@ watch(() => route.params.chapterId, async (newId) => {
         form.value = {
             title: '',
             chapter_number: 1,
-            content: ''
+            content: '',
+            published_at: new Date().toISOString()
         }
         if (novelSlug.value) {
             await loadNovelBySlug(novelSlug.value)
@@ -218,6 +219,16 @@ watch(() => route.params.slug, async (newSlug) => {
                     type="number" 
                     step="1" 
                     class="w-8 bg-transparent text-xs font-mono text-neutral-700 dark:text-neutral-300 outline-none text-center border-b border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 focus:border-blue-500"
+                 />
+             </div>
+
+             <!-- Release Date -->
+             <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                 <input 
+                    v-model="form.published_at" 
+                    class="bg-transparent text-[10px] font-medium text-neutral-500 outline-none border-b border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 focus:border-blue-500 max-w-[120px]"
+                    placeholder="Release Date..."
                  />
              </div>
 
@@ -537,6 +548,13 @@ watch(() => route.params.slug, async (newSlug) => {
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
             {{ errorMsg }}
             <button @click="errorMsg = ''" class="ml-1 opacity-70 hover:opacity-100">&times;</button>
+        </div>
+    </Transition>
+    <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="translate-y-2 opacity-0" enter-to-class="translate-y-0 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-2 opacity-0">
+        <div v-if="successMsg" class="fixed bottom-4 right-4 bg-emerald-600 text-white px-3.5 py-2 rounded-lg shadow-lg text-xs font-medium flex items-center gap-2 z-50">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            {{ successMsg }}
+            <button @click="successMsg = ''" class="ml-1 opacity-70 hover:opacity-100">&times;</button>
         </div>
     </Transition>
   </div>

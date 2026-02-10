@@ -104,44 +104,52 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
             
+            let buffer = '';
+            
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
                 
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                buffer += chunk;
+                
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep the last incomplete line in the buffer
+                
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.slice(6);
-                        if (jsonStr.trim() === '[DONE]') continue;
-                        try {
-                            const json = JSON.parse(jsonStr);
-                            const delta = json.choices?.[0]?.delta
-                            
-                            // Handle reasoning/thinking tokens
-                            const reasoning = delta?.reasoning_details || delta?.reasoning_content || delta?.reasoning
-                            if (reasoning) {
-                                if (typeof reasoning === 'string') {
-                                    reasoningContent.value += reasoning
-                                } else if (Array.isArray(reasoning)) {
-                                    for (const r of reasoning) {
-                                        if (r?.content) reasoningContent.value += r.content
-                                    }
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine.startsWith('data: ')) continue;
+                    
+                    const jsonStr = trimmedLine.slice(6);
+                    if (jsonStr === '[DONE]') continue;
+                    
+                    try {
+                        const json = JSON.parse(jsonStr);
+                        const delta = json.choices?.[0]?.delta
+                        
+                        // Handle reasoning/thinking tokens
+                        const reasoning = delta?.reasoning_details || delta?.reasoning_content || delta?.reasoning
+                        if (reasoning) {
+                            if (typeof reasoning === 'string') {
+                                reasoningContent.value += reasoning
+                            } else if (Array.isArray(reasoning)) {
+                                for (const r of reasoning) {
+                                    if (r?.content) reasoningContent.value += r.content
                                 }
                             }
-                            
-                            // Handle actual content tokens
-                            const content = delta?.content || '';
-                            if (content) {
-                                if (translationPhase.value !== 'streaming') {
-                                    translationPhase.value = 'streaming'
-                                }
-                                translationTokens.value++
-                                form.value.content += content
-                            }
-                        } catch (e) {
-                             console.warn('Error parsing stream chunk', e);
                         }
+                        
+                        // Handle actual content tokens
+                        const content = delta?.content || '';
+                        if (content) {
+                            if (translationPhase.value !== 'streaming') {
+                                translationPhase.value = 'streaming'
+                            }
+                            translationTokens.value++
+                            form.value.content += content
+                        }
+                    } catch (e) {
+                            console.warn('Error parsing stream chunk', e);
                     }
                 }
             }

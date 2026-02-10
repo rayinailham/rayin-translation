@@ -63,7 +63,7 @@ async function handleSubmit() {
         <!-- Modal -->
         <div class="relative w-full max-w-sm bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl overflow-hidden transform transition-all p-6">
           
-          <button @click="$emit('close')" class="absolute top-4 right-4 text-neutral-400 hover:text-black dark:hover:text-white transition-colors">
+          <button @click="$emit('close')" class="absolute top-4 right-4 text-neutral-400 hover:text-black dark:hover:text-white transition-colors" aria-label="Close dialog">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
 

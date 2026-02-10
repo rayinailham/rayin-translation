@@ -2,10 +2,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { logger } from '../utils/logger'
 import HomeView from '../views/HomeView.vue'
-import NovelView from '../views/NovelView.vue'
-import ChapterView from '../views/ChapterView.vue'
-import AdminNovelView from '../views/AdminNovelView.vue'
-import AdminChapterView from '../views/AdminChapterView.vue'
+
+// Lazy-load non-critical routes to reduce initial bundle size
+const NovelView = () => import('../views/NovelView.vue')
+const ChapterView = () => import('../views/ChapterView.vue')
+const AdminNovelView = () => import('../views/AdminNovelView.vue')
+const AdminChapterView = () => import('../views/AdminChapterView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

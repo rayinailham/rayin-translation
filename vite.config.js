@@ -11,4 +11,23 @@ export default defineConfig({
       '@': path.resolve(path.dirname(new URL(import.meta.url).pathname), './src').replace(/^\/([a-zA-Z]:)/, '$1'), // Windows fix
     },
   },
+  build: {
+    // Enable CSS code splitting for lazy-loaded routes
+    cssCodeSplit: true,
+    // Improve chunk splitting
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunk for Vue ecosystem
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          // Supabase in its own chunk
+          'supabase': ['@supabase/supabase-js'],
+          // Marked library
+          'marked': ['marked'],
+        },
+      },
+    },
+    // Target modern browsers for smaller builds
+    target: 'es2020',
+  },
 })

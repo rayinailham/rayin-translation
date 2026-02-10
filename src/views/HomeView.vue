@@ -195,7 +195,8 @@ onUnmounted(() => clearInterval(slideTimer))
 <template>
   <div class="min-h-screen bg-white dark:bg-black transition-colors">
 
-    <!-- ───── Header ───── -->
+    <!-- SEO: Main heading (visually hidden) -->
+    <h1 class="sr-only">Rayin Translation - Read Light Novels & Web Novels in English for Free</h1>
 
     <!-- ───── Header ───── -->
     <GlobalHeader />
@@ -207,7 +208,7 @@ onUnmounted(() => clearInterval(slideTimer))
           <!-- Background -->
           <div class="absolute inset-0">
             <img v-if="currentFeatured?.banner_url" :src="currentFeatured.banner_url"
-              class="w-full h-full object-cover opacity-50 blur-[3px] scale-110" style="object-position: center 25%" alt="" />
+              class="w-full h-full object-cover opacity-50 blur-[3px] scale-110" style="object-position: center 25%" :alt="currentFeatured?.title + ' banner'" fetchpriority="high" />
             <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black sm:bg-gradient-to-r sm:from-black/90 sm:via-black/70 sm:to-black/30" />
           </div>
  
@@ -217,7 +218,7 @@ onUnmounted(() => clearInterval(slideTimer))
             <!-- Cover -->
             <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105" @click="goNovel(currentFeatured?.slug)">
               <img :src="currentFeatured?.image_url" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
-                alt="" />
+                :alt="currentFeatured?.title + ' cover'" width="192" height="288" />
             </div>
  
             <!-- Info -->
@@ -255,15 +256,15 @@ onUnmounted(() => clearInterval(slideTimer))
       <div class="absolute bottom-4 right-4 md:bottom-6 md:right-8 z-20 flex flex-col items-end gap-2">
         <div class="flex items-center gap-3">
           <span class="text-xs font-bold text-neutral-500 tracking-wider">NO. {{ currentSlide + 1 }}</span>
-          <button @click.stop="prevSlide" class="p-1.5 rounded-full hover:bg-white/10 text-white transition">
+          <button @click.stop="prevSlide" class="p-1.5 rounded-full hover:bg-white/10 text-white transition" aria-label="Previous slide">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m15 18-6-6 6-6" />
             </svg>
           </button>
-          <button @click.stop="nextSlide" class="p-1.5 rounded-full hover:bg-white/10 text-white transition">
+          <button @click.stop="nextSlide" class="p-1.5 rounded-full hover:bg-white/10 text-white transition" aria-label="Next slide">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m9 18 6-6-6-6" />
             </svg>
           </button>
@@ -271,7 +272,9 @@ onUnmounted(() => clearInterval(slideTimer))
         <div class="flex gap-1.5">
           <button v-for="(_, i) in featuredNovels" :key="i" @click="currentSlide = i; resetTimer()"
             class="w-1.5 h-1.5 rounded-full transition-all"
-            :class="i === currentSlide ? 'bg-white w-4' : 'bg-white/30 hover:bg-white/50'" />
+            :class="i === currentSlide ? 'bg-white w-4' : 'bg-white/30 hover:bg-white/50'"
+            :aria-label="'Go to slide ' + (i + 1)"
+            :aria-current="i === currentSlide ? 'true' : undefined" />
         </div>
       </div>
     </section>
@@ -291,7 +294,7 @@ onUnmounted(() => clearInterval(slideTimer))
               <div class="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
                 <img :src="novel.image_url"
                   class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
-                  @click.stop="openPreview(novel)" alt="" />
+                  @click.stop="openPreview(novel)" :alt="novel.title + ' cover'" loading="lazy" width="96" height="128" />
                 <div class="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/10 rounded-xl pointer-events-none" />
               </div>
               <!-- Info -->
@@ -349,7 +352,7 @@ onUnmounted(() => clearInterval(slideTimer))
                 class="text-base font-bold text-neutral-200 dark:text-neutral-800 w-5 text-center flex-shrink-0">
                 {{ i + 1 }}
               </span>
-              <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" alt="" />
+              <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" :alt="novel.title + ' cover'" loading="lazy" width="36" height="52" />
               <div class="flex-1 min-w-0">
                 <h4 class="text-sm font-medium truncate">{{ novel.title }}</h4>
                 <p class="text-[13px] text-neutral-400 truncate">{{ novel.author }}</p>

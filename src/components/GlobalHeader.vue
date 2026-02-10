@@ -39,13 +39,13 @@ const logout = async () => {
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-300">
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-300" role="banner">
     <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
 
       <!-- Logo area -->
       <div class="flex items-center gap-4 overflow-hidden">
         <router-link to="/" class="flex items-center gap-2 group transition-all duration-300 flex-shrink-0 text-neutral-800 dark:text-neutral-200 hover:opacity-70">
-            <img src="/Logo Rayin Translation.png" alt="Rayin Translation" class="h-6 w-6 object-contain group-hover:scale-105 transition-transform duration-300" />
+            <img src="/Logo Rayin Translation.png" alt="Rayin Translation logo" class="h-6 w-6 object-contain group-hover:scale-105 transition-transform duration-300" width="24" height="24" />
             <span class="hidden sm:inline font-bold text-sm tracking-tight">
                 Rayin Translation
             </span>
@@ -126,7 +126,7 @@ const logout = async () => {
         </button>
 
         <!-- Search Icon -->
-        <button class="p-2 rounded-full text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all duration-300">
+        <button class="p-2 rounded-full text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all duration-300" aria-label="Search">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />

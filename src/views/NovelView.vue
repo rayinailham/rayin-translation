@@ -106,7 +106,7 @@ const goChapter = (num) =>
 
     <!-- ───── Banner ───── -->
     <div v-if="novel?.banner_url" class="absolute top-0 left-0 w-full h-[380px] z-0 overflow-hidden pointer-events-none fade-in">
-      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-40 dark:opacity-30 blur-[4px] transition-opacity duration-1000" style="object-position: center 25%" alt="" />
+      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-40 dark:opacity-30 blur-[4px] transition-opacity duration-1000" style="object-position: center 25%" :alt="novel.title + ' banner'" />
       <div class="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent dark:from-neutral-950 dark:via-neutral-950/40 dark:to-transparent" />
     </div>
 

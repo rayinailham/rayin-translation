@@ -57,7 +57,7 @@ async function fetchData() {
     .from('novels')
     .select('*')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
   if (novelData) {
     novel.value = novelData
@@ -75,7 +75,7 @@ async function fetchData() {
       .select('*')
       .eq('novel_id', novelData.id)
       .eq('chapter_number', chapterNum)
-      .single()
+      .maybeSingle()
 
     if (chapterData) {
       chapter.value = chapterData
@@ -107,17 +107,17 @@ const goChapter = (num) =>
     <!-- ───── Top Bar ───── -->
     <GlobalHeader>
        <template #branding>
-        <span class="text-neutral-300 dark:text-neutral-700 flex-shrink-0">/</span>
+        <span class="text-neutral-300 dark:text-neutral-700 flex-shrink-0 select-none">/</span>
         <router-link :to="{ name: 'novel', params: { slug: route.params.slug } }"
-            class="text-sm text-neutral-500 hover:text-black dark:hover:text-white transition truncate max-w-[150px] sm:max-w-xs">
+            class="text-[13px] font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors truncate max-w-[120px] sm:max-w-xs">
             {{ novel?.title || 'Back' }}
         </router-link>
-        <span v-if="chapter" class="text-neutral-300 dark:text-neutral-700 flex-shrink-0">/</span>
-        <span v-if="chapter" class="text-sm font-medium whitespace-nowrap">Ch. {{ chapter.chapter_number }}</span>
+        <span v-if="chapter" class="text-neutral-300 dark:text-neutral-700 flex-shrink-0 select-none">/</span>
+        <span v-if="chapter" class="text-[13px] font-bold text-neutral-900 dark:text-neutral-100 whitespace-nowrap">Ch. {{ chapter.chapter_number }}</span>
         
         <!-- SUPERADMIN: Edit Chapter Button -->
         <router-link v-if="auth.isSuperAdmin && chapter" :to="`/admin/edit-chapter/${chapter.id}`" 
-            class="ml-3 text-[12px] font-bold uppercase tracking-wider text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900 hover:bg-red-100 transition">
+            class="ml-3 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-500/10 rounded border border-red-500/20 hover:bg-red-500 hover:text-white transition-all duration-300">
             Edit
         </router-link>
       </template>

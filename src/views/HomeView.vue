@@ -156,7 +156,7 @@ onUnmounted(() => clearInterval(slideTimer))
           <!-- Background -->
           <div class="absolute inset-0">
             <img v-if="currentFeatured?.banner_url" :src="currentFeatured.banner_url"
-              class="w-full h-full object-cover opacity-40 blur-sm scale-110" style="object-position: center 25%" alt="" />
+              class="w-full h-full object-cover opacity-50 blur-[3px] scale-110" style="object-position: center 25%" alt="" />
             <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black sm:bg-gradient-to-r sm:from-black/90 sm:via-black/70 sm:to-black/30" />
           </div>
  

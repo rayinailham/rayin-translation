@@ -1,40 +1,84 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { supabase } from '../supabase'
 import { useAuthStore } from '../stores/auth'
 import { marked } from 'marked'
+
+// Composables
+import { useAdminChapter } from '../composables/useAdminChapter'
+import { useSettings } from '../composables/useSettings'
+import { useTranslator } from '../composables/useTranslator'
+import { useEditor } from '../composables/useEditor'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const isEdit = computed(() => !!route.params.chapterId)
-const novelSlug = route.params.slug
-const novel = ref(null)
-const novelsList = ref([])
-const chaptersList = ref([])
+// 1. Admin Chapter Logic (Form, Data)
+const {
+    isEdit,
+    novelSlug,
+    novel,
+    novelsList,
+    chaptersList,
+    form,
+    loading,
+    saving,
+    errorMsg,
+    loadNovels,
+    loadNovelBySlug,
+    loadChapter,
+    save,
+    deleteChapter,
+    handleNovelChange: _handleNovelChange,
+    handleChapterChange
+} = useAdminChapter()
 
-const form = ref({
-  title: '',
-  chapter_number: 1,
-  content: ''
-})
+// 2. Settings & Presets
+const {
+    presetsList,
+    activePresetId,
+    aiSettings,
+    showPromptEditor,
+    savingPreset,
+    loadPresets,
+    applyPreset, // exposed if needed
+    handlePresetChange,
+    saveCurrentPreset,
+    deletePreset,
+    resetToDefault
+} = useSettings(novel)
 
-const loading = ref(false)
-const saving = ref(false)
-const errorMsg = ref('')
-const previewMode = ref(false)
-
-// Translation State
+// 3. Translation UI State
 const showTranslation = ref(true)
 const japaneseText = ref('')
 const translationNote = ref('')
 const showContext = ref(false)
-const isTranslating = ref(false)
-const translationError = ref('')
+const showSettings = ref(false)
 
-// Word count
+// 4. Translator Logic
+const {
+    isTranslating,
+    translationError,
+    translationPhase,
+    translationElapsed,
+    translationTokens,
+    reasoningContent,
+    translate,
+    formatElapsed
+} = useTranslator(form, aiSettings, japaneseText, translationNote)
+
+// 5. Editor Logic
+const {
+    textareaRef,
+    autoResize,
+    insertText,
+    clearEditor
+} = useEditor(form)
+
+// Computed for UI
+const previewMode = ref(false)
+
 const wordCount = computed(() => {
     const text = form.value.content?.trim()
     if (!text) return 0
@@ -46,6 +90,19 @@ const charCount = computed(() => form.value.content?.length || 0)
 const renderedContent = computed(() => {
     return form.value.content ? marked(form.value.content) : ''
 })
+
+// Event Handlers
+async function handleNovelChange(event) {
+    // Pass loadPresets as callback to refresh presets when novel changes
+    await _handleNovelChange(event, loadPresets)
+}
+
+function insertSynopsis() {
+    if (novel.value?.synopsis) {
+        translationNote.value = (translationNote.value ? translationNote.value + '\n\n' : '') + `Synopsis:\n${novel.value.synopsis}`
+        showContext.value = true
+    }
+}
 
 // Keyboard shortcuts
 function handleKeydown(e) {
@@ -63,6 +120,7 @@ function handleKeydown(e) {
     }
 }
 
+// Lifecycle
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
 
@@ -70,346 +128,50 @@ onMounted(async () => {
      if (auth.user) router.push('/')
   }
 
-  const { data: allNovels } = await supabase.from('novels').select('id, title, slug, synopsis').order('title')
-  novelsList.value = allNovels || []
+  await loadNovels()
 
   if (isEdit.value) {
       await loadChapter(route.params.chapterId)
-  } else if (novelSlug) {
-      // Loading via slug (New Chapter mode or just initial load)
-      await loadNovelBySlug(novelSlug)
+  } else if (novelSlug.value) {
+      await loadNovelBySlug(novelSlug.value)
   }
+
+  await loadPresets()
 })
-
-async function loadNovelBySlug(slug) {
-    const { data } = await supabase.from('novels').select('id, title, slug, synopsis').eq('slug', slug).single()
-    if (data) {
-        novel.value = data
-        await fetchChapters(data.id)
-        
-        // If simply adding new, predict next chapter number
-        if (!isEdit.value) {
-            const { data: lastCh } = await supabase.from('chapters')
-            .select('chapter_number')
-            .eq('novel_id', data.id)
-            .order('chapter_number', { ascending: false })
-            .limit(1)
-            .single()
-            if (lastCh) form.value.chapter_number = lastCh.chapter_number + 1
-        }
-    }
-}
-
-async function loadChapter(chapterId) {
-    const { data } = await supabase.from('chapters').select('*').eq('id', chapterId).single()
-    if (data) {
-        form.value = data
-        // Load novel info if not present
-        if (!novel.value || novel.value.id !== data.novel_id) {
-            const { data: n } = await supabase.from('novels').select('id, title, slug, synopsis').eq('id', data.novel_id).single()
-            novel.value = n
-            await fetchChapters(n.id)
-        }
-    }
-}
-
-async function fetchChapters(novelId) {
-    const { data } = await supabase.from('chapters')
-        .select('id, chapter_number, title')
-        .eq('novel_id', novelId)
-        .order('chapter_number', { ascending: false })
-    chaptersList.value = data || []
-}
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-// Auto-dismiss error
-watch(errorMsg, (val) => {
-    if (val) setTimeout(() => { errorMsg.value = '' }, 5000)
-})
-
-function insertSynopsis() {
-    if (novel.value?.synopsis) {
-        translationNote.value = (translationNote.value ? translationNote.value + '\n\n' : '') + `Synopsis:\n${novel.value.synopsis}`
-        showContext.value = true
-    }
-}
-
-function clearEditor() {
-    if (form.value.content && confirm('Clear all content?')) {
-        form.value.content = ''
-    }
-}
-
-function insertText(prefix, suffix = '') {
-    const el = textareaRef.value
-    if (!el) return
-    
-    const start = el.selectionStart
-    const end = el.selectionEnd
-    const text = form.value.content
-    const before = text.substring(0, start)
-    const selection = text.substring(start, end)
-    const after = text.substring(end)
-    
-    form.value.content = before + prefix + selection + suffix + after
-    
-    // Restore cursor / selection
-    nextTick(() => {
-        el.focus()
-        el.setSelectionRange(start + prefix.length, end + prefix.length)
-        autoResize()
-    })
-}
-
-async function translate() {
-    if (!japaneseText.value.trim()) return
-    
-    isTranslating.value = true
-    translationError.value = ''
-    
-    if (form.value.content) {
-        if (!confirm('Content exists. Translation will be APPENDED. Continue?')) {
-            isTranslating.value = false
-            return
-        }
-        form.value.content += '\n\n'
-    }
-    
-    try {
-        const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
-        if (!apiKey) throw new Error('OpenRouter API Key not found in .env.local')
-
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "HTTP-Referer": window.location.origin, 
-                "X-Title": "Novel Translator", 
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "openrouter/pony-alpha",
-                stream: true,
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are a professional translator of Japanese Light Novels. Translate the provided Japanese text into natural, clear, and faithful English.
-
-CONTEXT / NOTES:
-${translationNote.value}
-
-ABSOLUTE RULES (No Exceptions):
-
-1. Full Fidelity:
-   Translate ALL content exactly. Do not omit thoughts, hesitation markers, trailing phrases, or emotional cues. Do not summarize. Do not simplify meaning.
-
-2. Structural Preservation (Critical):
-   Preserve the original logical and contrast structure of every sentence.
-   - If the Japanese uses contrast markers (けど, けれど, けれども, のに, が), you MUST preserve the contrast in English using "but...", "however...", or an equivalent structure.
-   - If a sentence trails off (e.g., ends with けど…), you MUST keep the trailing structure in English (e.g., "...but...").
-   - Do NOT resolve unfinished tension.
-
-3. No Meaning Resolution:
-   Do NOT convert contrast into confirmation.
-   Do NOT replace "I thought X, but..." with "I thought X. And it was true."
-   Do NOT smooth emotional ambiguity.
-
-4. Dialogue Intensity Preservation:
-   Preserve emotional force.
-   - Shock or alarm must be reflected explicitly (e.g., "?!").
-   - Do NOT flatten strong reactions into neutral questions.
-
-5. Natural but Exact English:
-   Use grammatically complete English, but never at the cost of altering structure or meaning.
-   Clarity is required. Rewriting logic is forbidden.
-
-6. Literal Core Terms:
-   Preserve key nouns literally.
-   - "Bakappuru" → "Idiot Couple"
-   - "Icha-icha" → "getting lovey-dovey" or "flirting"
-   Do not reinterpret or embellish core nouns.
-
-7. Honorifics & Status:
-   Maintain hierarchy accurately.
-   - "Ojou-sama" → "Young Lady"
-
-8. Cultural References:
-   If a pun or obscure reference cannot be conveyed naturally, add:
-   (TL Note: explanation)
-
-9. OUTPUT:
-   Just output the translation directly. Do not add "TITLE:" or "CONTENT:" headers. Do not add any conversational filler. Start translating immediately.`
-                    },
-                    {
-                        role: "user",
-                        content: japaneseText.value
-                    }
-                ]
-            })
-        });
-
-        if (!response.ok) {
-            const errBody = await response.text()
-            throw new Error(`API Error: ${response.status} - ${errBody}`)
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.slice(6);
-                    if (jsonStr.trim() === '[DONE]') continue;
-                    try {
-                        const json = JSON.parse(jsonStr);
-                        const content = json.choices?.[0]?.delta?.content || '';
-                        if (content) form.value.content += content
-                    } catch (e) {
-                         console.warn('Error parsing stream chunk', e);
-                    }
-                }
-            }
-        }
-
-    } catch (e) {
-        translationError.value = e.message
-    } finally {
-        isTranslating.value = false
-    }
-}
-
-async function save() {
-    saving.value = true
-    errorMsg.value = ''
-    
-    try {
-        if (!novel.value || !novel.value.id) {
-            throw new Error('Please select a novel first.')
-        }
-
-        const payload = {
-            ...form.value,
-            novel_id: novel.value.id,
-            updated_at: new Date()
-        }
-
-        let error = null
-        if (isEdit.value) {
-             const { error: err } = await supabase.from('chapters').update(payload).eq('id', route.params.chapterId)
-             error = err
-        } else {
-             const { error: err } = await supabase.from('chapters').insert(payload)
-             error = err
-        }
-
-        if (error) throw error
-        
-        const slug = novel.value.slug
-        if (slug) {
-             router.push({ name: 'novel', params: { slug: slug } })
-        } else {
-             router.push('/')
-        }
-
-    } catch (err) {
-        errorMsg.value = err.message
-    } finally {
-        saving.value = false
-    }
-}
-
-async function deleteChapter() {
-    if (!confirm('Delete this chapter permanently?')) return
-    const { error } = await supabase.from('chapters').delete().eq('id', route.params.chapterId)
-    if (error) alert(error.message)
-    else router.push({ name: 'novel', params: { slug: novel.value.slug } })
-}
-
-async function handleNovelChange(event) {
-    const selectedId = event.target.value
-    const selected = novelsList.value.find(n => n.id === selectedId)
-    if (selected) {
-        novel.value = selected
-        await fetchChapters(selected.id)
-        
-        // Find latest chapter to edit, or go to add new if none
-        if (chaptersList.value.length > 0) {
-            const latest = chaptersList.value[0] // Sorted desc
-            router.push({ name: 'edit-chapter', params: { chapterId: latest.id } })
-        } else {
-            router.push({ name: 'add-chapter', params: { slug: selected.slug } })
-        }
-    }
-}
-
-function handleChapterChange(event) {
-    const val = event.target.value
-    if (val === '__new__') {
-        router.push({ name: 'add-chapter', params: { slug: novel.value.slug } })
+// Watch for route changes to reload data
+watch(() => route.params.chapterId, async (newId) => {
+    if (newId) {
+        await loadChapter(newId)
     } else {
-        router.push({ name: 'edit-chapter', params: { chapterId: val } })
-    }
-} 
- 
-// Watch for route changes to reload data without page refresh
-watch(
-    () => route.params.chapterId,
-    async (newId) => {
-        if (newId) {
-             await loadChapter(newId)
+        // Reset for "New" mode
+        form.value = {
+            title: '',
+            chapter_number: 1,
+            content: ''
+        }
+        if (novelSlug.value) {
+            await loadNovelBySlug(novelSlug.value)
         }
     }
-)
-
-watch(
-    () => route.params.slug,
-    async (newSlug) => {
-        if (newSlug && !route.params.chapterId) {
-            // Reset form for new chapter
-             form.value = {
-                title: '',
-                chapter_number: 1,
-                content: ''
-             }
-             await loadNovelBySlug(newSlug)
-        }
-    }
-)
-
-// Auto-resize textarea
-const textareaRef = ref(null)
-
-function autoResize() {
-    const el = textareaRef.value
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-}
-
-watch(() => form.value.content, async () => {
-    await nextTick()
-    autoResize()
 })
 
-onMounted(async () => {
-    await nextTick()
-    autoResize()
+watch(() => route.params.slug, async (newSlug) => {
+    // Only reload novel if we aren't already loading a specific chapter
+    if (newSlug && !route.params.chapterId) {
+        await loadNovelBySlug(newSlug)
+    }
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col">
+  <div class="h-screen bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col overflow-hidden">
     <!-- Compact Toolbar -->
-    <header class="h-11 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-50 flex items-center justify-between px-3 shrink-0">
+    <header class="h-11 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 z-50 flex items-center justify-between px-3 shrink-0">
         <div class="flex items-center gap-2 min-w-0">
              <button @click="router.back()" class="p-1.5 -ml-1.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded transition shrink-0" title="Back">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -497,9 +259,9 @@ onMounted(async () => {
         </div>
     </header>
 
-    <div class="flex-1 flex items-start min-h-0 relative">
+    <div class="flex-1 flex min-h-0 relative overflow-hidden">
         <!-- Translator Panel (Collapsible, Compact) -->
-        <aside v-if="showTranslation" class="w-72 lg:w-80 border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex flex-col z-10 shrink-0 sticky top-11 h-[calc(100vh-2.75rem)]">
+        <aside v-if="showTranslation" class="w-96 lg:w-[28rem] border-r border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex flex-col z-10 shrink-0 h-full overflow-y-auto">
              <!-- Source Text - flex-1 to fill available space -->
              <div class="flex flex-col flex-1 min-h-0">
                  <div class="px-3 pt-3 pb-1 flex items-center justify-between">
@@ -536,8 +298,163 @@ onMounted(async () => {
                  </div>
              </div>
 
+             <!-- AI Settings (Collapsible) -->
+             <div class="border-t border-neutral-200 dark:border-neutral-800">
+                 <button @click="showSettings = !showSettings" class="w-full px-3 py-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition">
+                     <span class="flex items-center gap-1.5">
+                         AI Settings
+                         <span v-if="aiSettings.temperature !== 0.7 || aiSettings.reasoning" class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                     </span>
+                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{'rotate-180': showSettings}" class="transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+                 </button>
+                 <div v-show="showSettings" class="px-3 pb-3 space-y-2.5">
+                     <!-- Preset Selector -->
+                     <div>
+                         <label class="text-[10px] text-neutral-500 mb-1 block">Preset</label>
+                         <div class="flex items-center gap-1.5">
+                             <select 
+                                 :value="activePresetId" 
+                                 @change="handlePresetChange"
+                                 class="flex-1 appearance-none px-2 py-1.5 text-[11px] bg-white dark:bg-neutral-950 rounded border border-neutral-200 dark:border-neutral-800 focus:border-blue-500 outline-none cursor-pointer truncate"
+                             >
+                                 <option value="__new__">+ New Preset</option>
+                                 <option v-for="p in presetsList" :key="p.id" :value="p.id">
+                                     {{ p.name }}{{ p.is_default ? ' ★' : '' }}{{ p.novel_id ? ' (novel)' : '' }}
+                                 </option>
+                             </select>
+                             <button v-if="activePresetId" @click="deletePreset" class="p-1 text-neutral-400 hover:text-red-500 transition shrink-0" title="Delete preset">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                             </button>
+                         </div>
+                     </div>
+
+                     <!-- Model -->
+                     <div>
+                         <label class="text-[10px] text-neutral-500 mb-1 block">Model</label>
+                         <input 
+                             v-model="aiSettings.model" 
+                             class="w-full px-2 py-1.5 text-[11px] font-mono bg-white dark:bg-neutral-950 rounded border border-neutral-200 dark:border-neutral-800 focus:border-blue-500 outline-none" 
+                             placeholder="openrouter/pony-alpha" 
+                         />
+                     </div>
+
+                     <!-- System Prompt -->
+                     <div>
+                         <button @click="showPromptEditor = !showPromptEditor" class="flex items-center gap-1.5 text-[10px] text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 mb-1 transition">
+                             <span>System Prompt</span>
+                             <span class="text-[9px] font-mono text-neutral-400">({{ aiSettings.system_prompt?.length || 0 }} chars)</span>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{'rotate-180': showPromptEditor}" class="transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+                         </button>
+                         <textarea 
+                             v-if="showPromptEditor"
+                             v-model="aiSettings.system_prompt" 
+                             rows="10"
+                             class="w-full px-2.5 py-2 text-[10px] leading-relaxed bg-white dark:bg-neutral-950 rounded border border-neutral-200 dark:border-neutral-800 focus:border-blue-500 outline-none resize-y font-mono"
+                             placeholder="Enter system instructions for the AI translator..."
+                         ></textarea>
+                     </div>
+
+                     <!-- Temperature -->
+                     <div>
+                         <div class="flex items-center justify-between mb-1">
+                             <label class="text-[10px] text-neutral-500">Temperature</label>
+                             <span class="text-[10px] font-mono text-neutral-400">{{ aiSettings.temperature.toFixed(2) }}</span>
+                         </div>
+                         <input type="range" v-model.number="aiSettings.temperature" min="0" max="2" step="0.05" class="w-full h-1 accent-blue-500 cursor-pointer" />
+                     </div>
+                     <!-- Top P -->
+                     <div>
+                         <div class="flex items-center justify-between mb-1">
+                             <label class="text-[10px] text-neutral-500">Top P</label>
+                             <span class="text-[10px] font-mono text-neutral-400">{{ aiSettings.top_p.toFixed(2) }}</span>
+                         </div>
+                         <input type="range" v-model.number="aiSettings.top_p" min="0" max="1" step="0.05" class="w-full h-1 accent-blue-500 cursor-pointer" />
+                     </div>
+                     <!-- Top K -->
+                     <div>
+                         <div class="flex items-center justify-between mb-1">
+                             <label class="text-[10px] text-neutral-500">Top K</label>
+                             <span class="text-[10px] font-mono text-neutral-400">{{ aiSettings.top_k }}</span>
+                         </div>
+                         <input type="range" v-model.number="aiSettings.top_k" min="0" max="100" step="1" class="w-full h-1 accent-blue-500 cursor-pointer" />
+                     </div>
+                     <!-- Max Tokens -->
+                     <div>
+                         <div class="flex items-center justify-between mb-1">
+                             <label class="text-[10px] text-neutral-500">Max Tokens</label>
+                             <span class="text-[10px] font-mono text-neutral-400">{{ aiSettings.max_tokens.toLocaleString() }}</span>
+                         </div>
+                         <input type="range" v-model.number="aiSettings.max_tokens" min="512" max="32768" step="512" class="w-full h-1 accent-blue-500 cursor-pointer" />
+                     </div>
+                     <!-- Reasoning Toggle -->
+                     <div class="flex items-center justify-between">
+                         <label class="text-[10px] text-neutral-500">Reasoning / Thinking</label>
+                         <button 
+                             @click="aiSettings.reasoning = !aiSettings.reasoning" 
+                             :class="aiSettings.reasoning ? 'bg-blue-600' : 'bg-neutral-300 dark:bg-neutral-700'"
+                             class="relative w-7 h-4 rounded-full transition-colors"
+                         >
+                             <span :class="aiSettings.reasoning ? 'translate-x-3.5' : 'translate-x-0.5'" class="absolute top-0.5 left-0 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"></span>
+                         </button>
+                     </div>
+                     <!-- Reset -->
+                     <button @click="resetToDefault" class="text-[9px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline">
+                         Reset to defaults
+                     </button>
+
+                     <!-- Save / Actions -->
+                     <div class="flex items-center justify-between pt-1 border-t border-neutral-100 dark:border-neutral-800">
+                         <button @click="loadPresets" class="text-[9px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 underline">
+                             Reload presets
+                         </button>
+                         <button 
+                             @click="saveCurrentPreset" 
+                             :disabled="savingPreset"
+                             class="text-[10px] font-semibold text-blue-600 hover:text-blue-500 disabled:opacity-40 flex items-center gap-1"
+                         >
+                             <svg v-if="savingPreset" class="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                             {{ savingPreset ? 'Saving...' : 'Save Preset' }}
+                         </button>
+                     </div>
+                 </div>
+             </div>
+
              <!-- Translate Action -->
              <div class="px-3 pb-3 space-y-2 shrink-0">
+                 <!-- Translation Status -->
+                 <div v-if="isTranslating" class="px-2.5 py-2 bg-neutral-100 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 space-y-1.5">
+                     <div class="flex items-center justify-between">
+                         <div class="flex items-center gap-1.5">
+                             <!-- Phase icon -->
+                             <span v-if="translationPhase === 'connecting'" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                             <span v-else-if="translationPhase === 'thinking'" class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                             <span v-else-if="translationPhase === 'streaming'" class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                             
+                             <span class="text-[10px] font-semibold" :class="{
+                                 'text-yellow-600 dark:text-yellow-400': translationPhase === 'connecting',
+                                 'text-purple-600 dark:text-purple-400': translationPhase === 'thinking',
+                                 'text-green-600 dark:text-green-400': translationPhase === 'streaming',
+                             }">
+                                 {{ translationPhase === 'connecting' ? 'Connecting to API...' : '' }}
+                                 {{ translationPhase === 'thinking' ? 'Model is thinking...' : '' }}
+                                 {{ translationPhase === 'streaming' ? 'Receiving translation...' : '' }}
+                             </span>
+                         </div>
+                         <span class="text-[9px] font-mono text-neutral-400">{{ formatElapsed(translationElapsed) }}</span>
+                     </div>
+                     <!-- Progress details -->
+                     <div class="flex items-center gap-3 text-[9px] text-neutral-400">
+                         <span v-if="translationTokens > 0">{{ translationTokens }} tokens</span>
+                         <span v-if="reasoningContent" class="text-purple-400">thinking...</span>
+                     </div>
+                 </div>
+
+                 <!-- Reasoning Output (if any) -->
+                 <details v-if="reasoningContent" class="text-[10px]">
+                     <summary class="cursor-pointer text-purple-500 hover:text-purple-400 font-medium py-1">View model reasoning</summary>
+                     <pre class="mt-1 px-2 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded border border-purple-100 dark:border-purple-900/30 text-[9px] leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">{{ reasoningContent }}</pre>
+                 </details>
+
                  <p v-if="translationError" class="px-2.5 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] rounded border border-red-100 dark:border-red-900/30 line-clamp-2">
                      {{ translationError }}
                  </p>
@@ -554,10 +471,10 @@ onMounted(async () => {
         </aside>
 
         <!-- Main Editor Area -->
-        <main class="flex-1 min-w-0 pb-32">
-            <div class="max-w-3xl mx-auto px-5 py-5 min-h-full">
+        <main class="flex-1 min-w-0 h-full overflow-y-auto pb-32">
+            <div class="max-w-5xl mx-auto px-8 py-5 min-h-full">
                 
-                <div v-if="!previewMode" class="flex flex-col h-full">
+                <div v-if="!previewMode" class="flex flex-col">
                     <!-- Compact Title Row -->
                     <input 
                         v-model="form.title" 
@@ -597,7 +514,7 @@ onMounted(async () => {
                         ref="textareaRef"
                         v-model="form.content" 
                         @input="autoResize"
-                        class="w-full flex-1 min-h-[500px] resize-none outline-none text-[15px] leading-[1.8] text-neutral-800 dark:text-neutral-200 bg-transparent placeholder:text-neutral-300 dark:placeholder:text-neutral-700 overflow-hidden"
+                        class="w-full min-h-[500px] resize-none outline-none text-[15px] leading-[1.8] text-neutral-800 dark:text-neutral-200 bg-transparent placeholder:text-neutral-300 dark:placeholder:text-neutral-700 overflow-hidden"
                         placeholder="Start writing or translate..."
                     ></textarea>
                 </div>

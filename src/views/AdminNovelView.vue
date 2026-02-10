@@ -61,7 +61,7 @@ async function loadNovel(slug) {
     .from('novels')
     .select('*')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
   
   if (data) {
     form.value = {

@@ -65,7 +65,7 @@ async function fetchData() {
     .from('novels')
     .select('*')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
 
   if (novelData) {
     novel.value = novelData
@@ -96,16 +96,16 @@ const goChapter = (num) =>
   <div class="min-h-screen bg-white dark:bg-neutral-950 transition-colors relative">
 
     <!-- ───── Banner ───── -->
-    <div v-if="novel?.banner_url" class="absolute top-0 left-0 w-full h-[500px] z-0 overflow-hidden pointer-events-none fade-in">
-      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-60 dark:opacity-40 blur-[2px]" style="object-position: center 25%" alt="" />
-      <div class="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent dark:from-neutral-950 dark:via-neutral-950/50 dark:to-transparent" />
+    <div v-if="novel?.banner_url" class="absolute top-0 left-0 w-full h-[380px] z-0 overflow-hidden pointer-events-none fade-in">
+      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-40 dark:opacity-30 blur-[4px] transition-opacity duration-1000" style="object-position: center 25%" alt="" />
+      <div class="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent dark:from-neutral-950 dark:via-neutral-950/40 dark:to-transparent" />
     </div>
 
     <!-- ───── Header ───── -->
     <GlobalHeader>
       <template #branding>
-        <span class="text-neutral-300 dark:text-neutral-700">/</span>
-        <span class="text-sm text-neutral-500 truncate">{{ novel?.title }}</span>
+        <span class="text-neutral-300 dark:text-neutral-700 select-none">/</span>
+        <span class="text-[13px] font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[150px] sm:max-w-xs">{{ novel?.title }}</span>
       </template>
     </GlobalHeader>
 

@@ -18,40 +18,49 @@ export function useSettings(novel) {
     const showPromptEditor = ref(false)
     const savingPreset = ref(false)
     
+    // Initialize with defaults
     const aiSettings = ref({ ...DEFAULT_AI_SETTINGS })
 
     async function loadPresets() {
-        const { data } = await supabase
-            .from('translation_settings')
-            .select('*')
-            .order('is_default', { ascending: false })
-            .order('name')
-        presetsList.value = data || []
-        
-        logger.preset('Loaded List', { count: presetsList.value.length })
-
-        // Auto-select: novel-specific first, then default
-        if (data && data.length > 0) {
-            const novelPreset = novel.value ? data.find(p => p.novel_id === novel.value.id) : null
-            const defaultPreset = data.find(p => p.is_default)
-            const preset = novelPreset || defaultPreset || data[0]
-            applyPreset(preset)
+        try {
+            const { data, error } = await supabase
+                .from('translation_settings')
+                .select('*')
+                .order('is_default', { ascending: false })
+                .order('name')
+            
+            if (error) throw error
+            presetsList.value = data || []
+            
+            // Auto-select logic
+            if (presetsList.value.length > 0) {
+                // 1. Try to find a preset for this specific novel
+                const novelPreset = novel.value ? presetsList.value.find(p => p.novel_id === novel.value.id) : null
+                // 2. Or default
+                const defaultPreset = presetsList.value.find(p => p.is_default)
+                
+                const target = novelPreset || defaultPreset || presetsList.value[0]
+                if (target) applyPreset(target)
+            }
+        } catch (err) {
+            logger.error('Failed to load presets', err)
         }
     }
 
     function applyPreset(preset) {
         if (!preset) return
         activePresetId.value = preset.id
+        
+        // spread to ensure reactivity update
         aiSettings.value = {
-            temperature: preset.temperature,
-            top_p: preset.top_p,
-            top_k: preset.top_k,
-            max_tokens: preset.max_tokens,
-            reasoning: preset.reasoning,
-            model: preset.model || 'openrouter/pony-alpha',
+            temperature: preset.temperature ?? DEFAULT_AI_SETTINGS.temperature,
+            top_p: preset.top_p ?? DEFAULT_AI_SETTINGS.top_p,
+            top_k: preset.top_k ?? DEFAULT_AI_SETTINGS.top_k,
+            max_tokens: preset.max_tokens ?? DEFAULT_AI_SETTINGS.max_tokens,
+            reasoning: preset.reasoning ?? DEFAULT_AI_SETTINGS.reasoning,
+            model: preset.model || DEFAULT_AI_SETTINGS.model,
             system_prompt: preset.system_prompt || '',
         }
-        logger.preset('Applied', { id: preset.id, name: preset.name })
     }
 
     function handlePresetChange(event) {
@@ -60,7 +69,6 @@ export function useSettings(novel) {
             activePresetId.value = null
             aiSettings.value = { ...DEFAULT_AI_SETTINGS }
             showPromptEditor.value = true
-            logger.preset('New Preset Selected')
             return
         }
         const preset = presetsList.value.find(p => p.id === id)
@@ -68,12 +76,31 @@ export function useSettings(novel) {
     }
 
     async function saveCurrentPreset() {
+        if (savingPreset.value) return
+
+        let name = null
+        // If creating new, ask for name
+        if (!activePresetId.value) {
+            name = prompt('Enter a name for this preset:')
+            if (!name) return
+        }
+
         savingPreset.value = true
+        // 15 seconds timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000)
+
         try {
-            // Refresh auth session in case token expired during long translation
-            const { error: refreshError } = await supabase.auth.refreshSession()
-            if (refreshError) {
-                console.warn('Session refresh warning:', refreshError.message)
+            // 1. Session Check (prevent hang)
+            const sessionPromise = supabase.auth.getSession()
+            const sessionResult = await Promise.race([
+                sessionPromise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Session check timeout')), 3000))
+            ])
+            
+            if (!sessionResult.data.session) {
+                const { error: refreshError } = await supabase.auth.refreshSession()
+                if (refreshError) throw new Error('Session expired: ' + refreshError.message)
             }
 
             const payload = {
@@ -86,70 +113,92 @@ export function useSettings(novel) {
                 reasoning: aiSettings.value.reasoning,
                 updated_at: new Date().toISOString(),
             }
-            
-            logger.preset('Saving...', payload)
-    
+
             if (activePresetId.value) {
                 // Update existing
                 const { error } = await supabase
                     .from('translation_settings')
                     .update(payload)
                     .eq('id', activePresetId.value)
+                    .abortSignal(controller.signal)
+
                 if (error) throw error
-                
-                // Update local list
+
+                // Update local memory
                 const idx = presetsList.value.findIndex(p => p.id === activePresetId.value)
                 if (idx !== -1) {
                     presetsList.value[idx] = { ...presetsList.value[idx], ...payload }
                 }
-                logger.preset('Updated existing', { id: activePresetId.value })
+                alert('Preset updated.')
+                
             } else {
                 // Create new
-                const name = prompt('Preset name (e.g. "casual", "formal"):')
-                if (!name) { savingPreset.value = false; return }
-                
                 payload.name = name
-                payload.novel_id = novel.value?.id || null
+                payload.novel_id = novel.value?.id || null 
                 payload.is_default = false
 
                 const { data, error } = await supabase
                     .from('translation_settings')
                     .insert(payload)
                     .select()
+                    .single()
+                    .abortSignal(controller.signal)
+
                 if (error) throw error
                 
-                if (data?.[0]) {
-                    presetsList.value.push(data[0])
-                    activePresetId.value = data[0].id
-                    // Sort list to keep consistent (Default first, then Name)
+                if (data) {
+                    presetsList.value.push(data)
+                    activePresetId.value = data.id
+                    // Re-sort
                     presetsList.value.sort((a, b) => {
                          if (a.is_default === b.is_default) return a.name.localeCompare(b.name)
                          return a.is_default ? -1 : 1
                     })
-                    logger.preset('Created new', { id: data[0].id, name })
                 }
+                alert('New preset saved.')
             }
         } catch (e) {
-            alert('Save failed: ' + e.message)
-            logger.error('Preset Save Failed', e)
+            console.error(e)
+            if (e.name === 'AbortError') {
+                alert('Request timed out. Please check connection.')
+            } else {
+                alert('Failed to save preset: ' + e.message)
+            }
         } finally {
+            clearTimeout(timeoutId)
             savingPreset.value = false
         }
     }
 
     async function deletePreset() {
         if (!activePresetId.value) return
+        
         const preset = presetsList.value.find(p => p.id === activePresetId.value)
-        if (preset?.is_default) { alert('Cannot delete the default preset.'); return }
+        if (preset?.is_default) { 
+            alert('Cannot delete the default preset.')
+            return 
+        }
+        
         if (!confirm(`Delete preset "${preset?.name}"?`)) return
         
-        const { error } = await supabase.from('translation_settings').delete().eq('id', activePresetId.value)
-        if (error) { alert(error.message); return }
-        
-        logger.preset('Deleted', { id: activePresetId.value, name: preset?.name })
-        
-        activePresetId.value = null
-        await loadPresets()
+        try {
+            const { error } = await supabase
+                .from('translation_settings')
+                .delete()
+                .eq('id', activePresetId.value)
+                
+            if (error) throw error
+            
+            // Remove from list
+            presetsList.value = presetsList.value.filter(p => p.id !== activePresetId.value)
+            activePresetId.value = null
+            
+            // Re-apply default or reset
+            resetToDefault()
+            
+        } catch (e) {
+            alert('Failed to delete: ' + e.message)
+        }
     }
 
     function resetToDefault() {
@@ -160,7 +209,6 @@ export function useSettings(novel) {
             aiSettings.value = { ...DEFAULT_AI_SETTINGS }
             activePresetId.value = null
         }
-        logger.preset('Reset to Default')
     }
 
     return {

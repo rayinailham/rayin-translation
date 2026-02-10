@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import { useAuthStore } from '../stores/auth'
 import { logger } from '../utils/logger'
+import { withTimeout, safeRefreshSession } from '../utils/timeout'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,6 +13,7 @@ const auth = useAuthStore()
 const isEdit = computed(() => !!route.params.slug)
 const loading = ref(false)
 const saving = ref(false)
+const isTesting = ref(false)
 const errorMsg = ref('')
 const novelsList = ref([])
 
@@ -140,19 +142,25 @@ async function save() {
     }
 
     logger.novel('Saving...', { title: payload.title, slug: payload.slug })
+    
+    // Refresh auth session safely
+    await safeRefreshSession(supabase, 10000)
 
     let error = null
     if (isEdit.value) {
-      const { error: err } = await supabase
-        .from('novels')
-        .update(payload)
-        .eq('id', form.value.id) // Use original ID for the WHERE clause
+      const { error: err } = await withTimeout(
+        supabase.from('novels').update(payload).eq('id', form.value.id),
+        60000,
+        'Novel update'
+      )
       error = err
       if (!error) logger.novel('Updated Existing', { id: form.value.id })
     } else {
-      const { error: err } = await supabase
-        .from('novels')
-        .insert(payload)
+      const { error: err } = await withTimeout(
+        supabase.from('novels').insert(payload),
+        60000,
+        'Novel insert'
+      )
       error = err
       if (!error) logger.novel('Created New', { title: payload.title })
     }
@@ -175,6 +183,59 @@ async function deleteNovel() {
     else {
         logger.novel('Deleted', { id: form.value.id, title: form.value.title })
         router.push('/')
+    }
+}
+
+async function testConnection() {
+    isTesting.value = true
+    logger.info('Starting Connection Test...')
+    try {
+        const start = Date.now()
+        
+        // 1. Check Read (Novels)
+        const { error: readError } = await withTimeout(
+            supabase.from('novels').select('id').limit(1).single(), 
+            5000, 
+            'Read Test'
+        )
+        if (readError && readError.code !== 'PGRST116') throw readError
+        logger.info('Read Test (Novels): OK')
+
+        // 2. Check Read (Chapters)
+        const { error: chError } = await withTimeout(
+            supabase.from('chapters').select('id').limit(1).single(), 
+            5000, 
+            'Chapter Read Test'
+        )
+         if (chError && chError.code !== 'PGRST116') throw chError
+        logger.info('Read Test (Chapters): OK')
+
+        // 3. Check Auth
+        const { data: { session }, error: authError } = await withTimeout(
+            supabase.auth.getSession(),
+            5000,
+            'Auth Check'
+        )
+        if (authError) throw authError
+        logger.info('Auth Test: OK', { user: session?.user?.email })
+
+        // 4. Check Write Connectivity (Update non-existing)
+        const { error: writeError } = await withTimeout(
+            supabase.from('chapters').update({ updated_at: new Date().toISOString() }).eq('id', '00000000-0000-0000-0000-000000000000'),
+            5000,
+            'Write Connectivity Test'
+        )
+        if (writeError) throw writeError
+        logger.info('Write Test (Connectivity): OK')
+
+        const duration = Date.now() - start
+        alert(`Connection Healthy! (${duration}ms)\n• Reads: OK\n• Auth: OK\n• Writes: OK\n\nCheck console for details.`)
+
+    } catch (err) {
+        logger.error('Connection Test Failed', err)
+        alert(`Connection Test Failed:\n${err.message}\n\nCheck console for full error logs.`)
+    } finally {
+        isTesting.value = false
     }
 }
 </script>
@@ -208,6 +269,10 @@ async function deleteNovel() {
         </div>
 
         <div class="flex items-center gap-3">
+             <button @click="testConnection" :disabled="isTesting" class="text-[10px] font-mono text-neutral-400 hover:text-blue-500 transition mr-2" title="Test Supabase Connection">
+                {{ isTesting ? 'Ping...' : 'Test Conn' }}
+            </button>
+
             <button v-if="isEdit" @click="deleteNovel" class="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition" title="Delete novel">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>

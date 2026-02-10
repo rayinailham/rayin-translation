@@ -8,32 +8,44 @@ export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
     const userProfile = ref(null)
     const isSuperAdmin = ref(false)
+    const isReady = ref(false)
+    let listenerRegistered = false
   
     const checkUser = async () => {
       logger.system('Auth Check Start')
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        user.value = session.user
-        logger.system('Session Found', { userId: user.value.id, email: user.value.email })
-        await fetchProfile(user.value.id)
-      } else {
-        user.value = null
-        userProfile.value = null
-        isSuperAdmin.value = false
-        logger.system('No Session Found')
+      try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            user.value = session.user
+            logger.system('Session Found', { userId: user.value.id, email: user.value.email })
+            await fetchProfile(user.value.id)
+          } else {
+            user.value = null
+            userProfile.value = null
+            isSuperAdmin.value = false
+            logger.system('No Session Found')
+          }
+      
+          // Only register the listener once to prevent stacking
+          if (!listenerRegistered) {
+            listenerRegistered = true
+            supabase.auth.onAuthStateChange(async (event, session) => {
+              logger.system(`Auth State Changed: ${event}`)
+              if (session?.user) {
+                user.value = session.user
+                await fetchProfile(user.value.id)
+              } else {
+                user.value = null
+                userProfile.value = null
+                isSuperAdmin.value = false
+              }
+            })
+          }
+      } catch (e) {
+          logger.error('Auth Check Failed', e)
+      } finally {
+          isReady.value = true
       }
-  
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        logger.system(`Auth State Changed: ${event}`)
-        if (session?.user) {
-          user.value = session.user
-          await fetchProfile(user.value.id)
-        } else {
-          user.value = null
-          userProfile.value = null
-          isSuperAdmin.value = false
-        }
-      })
     }
   
     const fetchProfile = async (userId) => {
@@ -97,6 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
       user, 
       userProfile, 
       isSuperAdmin, 
+      isReady,
       checkUser, 
       signIn, 
       signUp, 

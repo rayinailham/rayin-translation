@@ -2,7 +2,10 @@
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+
 import { marked } from 'marked'
+import { supabase } from '../supabase'
+import { logger } from '../utils/logger'
 
 // Composables
 import { useAdminChapter } from '../composables/useAdminChapter'
@@ -167,9 +170,17 @@ function handleKeydown(e) {
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
 
-  if (!auth.isSuperAdmin) {
-     if (auth.user) router.push('/')
-  }
+  // Wait for auth to be ready before enforcing access control
+  watch(() => auth.isReady, (ready) => {
+      if (ready) {
+          if (auth.user && !auth.isSuperAdmin) {
+              // User is logged in but not admin -> Home
+              router.push('/')
+          }
+           // If not logged in, we might want to redirect to login, but following existing logic:
+           // If auth.user is null, we do nothing (maybe allowed for setup? or handled elsewhere)
+      }
+  }, { immediate: true })
 
   await loadNovels()
 

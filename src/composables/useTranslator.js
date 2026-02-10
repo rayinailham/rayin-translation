@@ -8,6 +8,7 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
     const translationTokens = ref(0)
     const reasoningContent = ref('')
     let translationTimer = null
+    let abortController = null
 
     function startElapsedTimer() {
         translationElapsed.value = 0
@@ -49,6 +50,9 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
             form.value.content += '\n\n'
         }
         
+        let reader = null
+        abortController = new AbortController()
+
         try {
             const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY
             if (!apiKey) throw new Error('OpenRouter API Key not found in .env.local')
@@ -91,7 +95,8 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
                     "X-Title": "Novel Translator", 
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
+                signal: abortController.signal
             });
 
             if (!response.ok) {
@@ -101,7 +106,7 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
 
             translationPhase.value = 'thinking'
 
-            const reader = response.body.getReader();
+            reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
             
             let buffer = '';
@@ -155,11 +160,30 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
             }
 
         } catch (e) {
-            translationError.value = e.message
+            if (e.name !== 'AbortError') {
+                translationError.value = e.message
+            }
         } finally {
+            // Properly release the stream reader to free up the network connection
+            if (reader) {
+                try {
+                    await reader.cancel()
+                } catch (_) { /* ignore cancel errors */ }
+                try {
+                    reader.releaseLock()
+                } catch (_) { /* ignore if already released */ }
+            }
+            reader = null
+            abortController = null
             isTranslating.value = false
             translationPhase.value = ''
             stopElapsedTimer()
+        }
+    }
+
+    function cancelTranslation() {
+        if (abortController) {
+            abortController.abort()
         }
     }
 
@@ -171,6 +195,7 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
         translationTokens,
         reasoningContent,
         translate,
+        cancelTranslation,
         formatElapsed
     }
 }

@@ -65,6 +65,12 @@ export function useSettings(novel) {
     async function saveCurrentPreset() {
         savingPreset.value = true
         try {
+            // Refresh auth session in case token expired during long translation
+            const { error: refreshError } = await supabase.auth.refreshSession()
+            if (refreshError) {
+                console.warn('Session refresh warning:', refreshError.message)
+            }
+
             const payload = {
                 system_prompt: aiSettings.value.system_prompt,
                 model: aiSettings.value.model,

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { marked } from 'marked'
@@ -65,6 +65,7 @@ const {
     translationTokens,
     reasoningContent,
     translate,
+    cancelTranslation,
     formatElapsed
 } = useTranslator(form, aiSettings, japaneseText, translationNote)
 
@@ -109,8 +110,17 @@ watch(isTranslating, async (val) => {
     }
 })
 
-// Computed for UI
+// Fix for editing section cutting off when switching back from preview
 const previewMode = ref(false)
+
+watch(previewMode, async (val) => {
+    if (!val) {
+        await nextTick()
+        autoResize()
+    }
+})
+
+// Computed for UI
 
 const wordCount = computed(() => {
     const text = form.value.content?.trim()
@@ -245,16 +255,7 @@ watch(() => route.params.slug, async (newSlug) => {
                 </div>
              </div>
              
-             <div class="flex items-center gap-1 shrink-0 ml-1">
-                 <span class="text-[10px] text-neutral-400 uppercase">#</span>
-                 <input 
-                    v-model="form.chapter_number" 
-                    type="number" 
-                    step="1" 
-                    class="w-8 bg-transparent text-xs font-mono text-neutral-700 dark:text-neutral-300 outline-none text-center border-b border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 focus:border-blue-500"
-                 />
-             </div>
-
+             
              <!-- Release Date -->
              <div class="flex items-center gap-1.5 shrink-0 ml-2">
                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
@@ -502,15 +503,26 @@ watch(() => route.params.slug, async (newSlug) => {
                  <p v-if="translationError" class="px-2.5 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] rounded border border-red-100 dark:border-red-900/30 line-clamp-2">
                      {{ translationError }}
                  </p>
-                 <button 
-                    type="button" 
-                    @click="translate" 
-                    :disabled="isTranslating || !japaneseText"
-                    class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-md transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                 >
-                    <svg v-if="isTranslating" class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    {{ isTranslating ? 'Translating...' : 'Translate' }}
-                 </button>
+                 <div class="flex gap-2">
+                     <button 
+                        type="button" 
+                        @click="translate" 
+                        :disabled="isTranslating || !japaneseText"
+                        class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-md transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                     >
+                        <svg v-if="isTranslating" class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        {{ isTranslating ? 'Translating...' : 'Translate' }}
+                     </button>
+                     <button 
+                        v-if="isTranslating"
+                        type="button" 
+                        @click="cancelTranslation"
+                        class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-md transition"
+                        title="Cancel translation"
+                     >
+                        Stop
+                     </button>
+                 </div>
              </div>
         </aside>
 

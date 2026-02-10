@@ -81,6 +81,12 @@ export function useAdminChapter() {
                 throw new Error('Please select a novel first.')
             }
 
+            // Refresh auth session in case token expired during long translation
+            const { error: refreshError } = await supabase.auth.refreshSession()
+            if (refreshError) {
+                console.warn('Session refresh warning:', refreshError.message)
+            }
+
             // Ensure types are correct to prevent 400 errors
             const payload = {
                 title: form.value.title.trim(),

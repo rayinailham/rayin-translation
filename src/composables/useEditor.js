@@ -1,12 +1,17 @@
 import { ref, watch, nextTick, onMounted } from 'vue'
 
-export function useEditor(form) {
+export function useEditor(form, isTranslating = null) {
     const textareaRef = ref(null)
 
     function autoResize() {
         const el = textareaRef.value
         if (!el) return
-        el.style.height = 'auto'
+        
+        // If translating/streaming, avoid resetting height to 'auto' to prevent scroll jumps
+        // We assume content is only growing during translation
+        if (!isTranslating?.value) {
+            el.style.height = 'auto'
+        }
         el.style.height = el.scrollHeight + 'px'
     }
 

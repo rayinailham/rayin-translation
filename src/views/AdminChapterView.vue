@@ -74,7 +74,40 @@ const {
     autoResize,
     insertText,
     clearEditor
-} = useEditor(form)
+} = useEditor(form, isTranslating)
+
+const mainScrollRef = ref(null)
+const userScrolledUp = ref(false)
+
+function handleMainScroll() {
+    if (!mainScrollRef.value) return
+    const { scrollTop, scrollHeight, clientHeight } = mainScrollRef.value
+    // If user is not at the bottom (with tolerance of 100px)
+    if (scrollHeight - scrollTop - clientHeight > 100) {
+        userScrolledUp.value = true
+    } else {
+        // If user scrolls back to bottom, resume following
+        userScrolledUp.value = false
+    }
+}
+
+// Auto-scroll logic
+watch(() => form.value.content, async () => {
+    if (isTranslating.value && !userScrolledUp.value && mainScrollRef.value) {
+        await nextTick()
+        mainScrollRef.value.scrollTop = mainScrollRef.value.scrollHeight
+    }
+})
+
+watch(isTranslating, async (val) => {
+    if (val) {
+        userScrolledUp.value = false
+        if (mainScrollRef.value) {
+            await nextTick()
+            mainScrollRef.value.scrollTop = mainScrollRef.value.scrollHeight
+        }
+    }
+})
 
 // Computed for UI
 const previewMode = ref(false)
@@ -482,7 +515,11 @@ watch(() => route.params.slug, async (newSlug) => {
         </aside>
 
         <!-- Main Editor Area -->
-        <main class="flex-1 min-w-0 h-full overflow-y-auto pb-32">
+        <main 
+            ref="mainScrollRef"
+            @scroll="handleMainScroll"
+            class="flex-1 min-w-0 h-full overflow-y-auto pb-32"
+        >
             <div class="max-w-5xl mx-auto px-8 py-5 min-h-full">
                 
                 <div v-if="!previewMode" class="flex flex-col">

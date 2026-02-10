@@ -83,68 +83,89 @@ function openPreview(novel) {
 
 // ── Data Fetching ──
 onMounted(async () => {
-  // Featured novels for carousel
-  const { data: featured } = await supabase
-    .from('novels')
-    .select('*')
-    .not('banner_url', 'is', null)
-    .limit(10)
+  try {
+    // Featured novels for carousel
+    const { data: featured, error: featuredError } = await supabase
+      .from('novels')
+      .select('*')
+      .not('banner_url', 'is', null)
+      .limit(10)
 
-  if (featured?.length) {
-    featuredNovels.value = featured
-    resetTimer()
+    if (featuredError) throw featuredError
+    
+    if (featured?.length) {
+      featuredNovels.value = featured
+      resetTimer()
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error('Error fetching featured:', err)
   }
 
-  // Latest updated novels with their chapters (published)
-  let latestQuery = supabase
-    .from('novels')
-    .select('*, chapters(id, chapter_number, title, published_at)')
-    .order('updated_at', { ascending: false })
-    .limit(15)
+  try {
+    // Latest updated novels with their chapters (published)
+    let latestQuery = supabase
+      .from('novels')
+      .select('*, chapters(id, chapter_number, title, published_at)')
+      .order('updated_at', { ascending: false })
+      .limit(15)
 
-  if (!auth.isSuperAdmin) {
-      // In a real app, you'd filter the subquery for chapters published_at <= now()
-      // For now, sorting by published_at DESC is the main priority
+    if (!auth.isSuperAdmin) {
+        // In a real app, you'd filter the subquery for chapters published_at <= now()
+        // For now, sorting by published_at DESC is the main priority
+    }
+
+    const { data: latest, error: latestError } = await latestQuery
+    if (latestError) throw latestError
+
+    if (latest) {
+      latestNovels.value = latest.map(n => ({
+        ...n,
+        chapters: (n.chapters || [])
+          .sort((a, b) => b.chapter_number - a.chapter_number)
+          .slice(0, 3)
+      }))
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error('Error fetching latest:', err)
   }
 
-  const { data: latest } = await latestQuery
+  try {
+    // Popular — All Time
+    const { data: allTime, error: allTimeError } = await supabase
+      .from('novels')
+      .select('id, title, slug, image_url, author')
+      .order('created_at', { ascending: true })
+      .limit(10)
+      
+    if (allTimeError) throw allTimeError
+    if (allTime) popularData.value.all = allTime
 
-  if (latest) {
-    latestNovels.value = latest.map(n => ({
-      ...n,
-      chapters: (n.chapters || [])
-        .sort((a, b) => b.chapter_number - a.chapter_number)
-        .slice(0, 3)
-    }))
+    // Popular — Weekly
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+    const { data: weekly, error: weeklyError } = await supabase
+      .from('novels')
+      .select('id, title, slug, image_url, author')
+      .gte('updated_at', weekAgo)
+      .order('updated_at', { ascending: false })
+      .limit(10)
+      
+    if (weeklyError) throw weeklyError
+    if (weekly) popularData.value.weekly = weekly
+
+    // Popular — Monthly
+    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString()
+    const { data: monthly, error: monthlyError } = await supabase
+      .from('novels')
+      .select('id, title, slug, image_url, author')
+      .gte('updated_at', monthAgo)
+      .order('updated_at', { ascending: false })
+      .limit(10)
+      
+    if (monthlyError) throw monthlyError
+    if (monthly) popularData.value.monthly = monthly
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error('Error fetching popular:', err)
   }
-
-  // Popular — All Time
-  const { data: allTime } = await supabase
-    .from('novels')
-    .select('id, title, slug, image_url, author')
-    .order('created_at', { ascending: true })
-    .limit(10)
-  if (allTime) popularData.value.all = allTime
-
-  // Popular — Weekly
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-  const { data: weekly } = await supabase
-    .from('novels')
-    .select('id, title, slug, image_url, author')
-    .gte('updated_at', weekAgo)
-    .order('updated_at', { ascending: false })
-    .limit(10)
-  if (weekly) popularData.value.weekly = weekly
-
-  // Popular — Monthly
-  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString()
-  const { data: monthly } = await supabase
-    .from('novels')
-    .select('id, title, slug, image_url, author')
-    .gte('updated_at', monthAgo)
-    .order('updated_at', { ascending: false })
-    .limit(10)
-  if (monthly) popularData.value.monthly = monthly
 })
 
 onUnmounted(() => clearInterval(slideTimer))

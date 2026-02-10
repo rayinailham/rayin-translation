@@ -112,8 +112,8 @@ const goChapter = (num) =>
     <template v-if="novel">
 
       <!-- ───── Novel Info ───── -->
-      <div class="relative z-10 max-w-5xl mx-auto px-4 pt-10 pb-8">
-        <div class="flex flex-col sm:flex-row gap-6 sm:gap-8">
+      <div class="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 pt-12 pb-10">
+        <div class="flex flex-col sm:flex-row gap-8 sm:gap-12">
 
           <!-- Cover -->
           <div class="w-36 sm:w-44 flex-shrink-0 mx-auto sm:mx-0">
@@ -150,7 +150,7 @@ const goChapter = (num) =>
             <!-- Genres -->
             <div v-if="genres.length" class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-4">
               <span v-for="g in genres" :key="g"
-                class="px-2.5 py-0.5 text-[11px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-md capitalize">
+                class="px-2.5 py-0.5 text-[13px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded-md capitalize">
                 {{ g }}
               </span>
             </div>
@@ -158,7 +158,7 @@ const goChapter = (num) =>
             <!-- Tags -->
             <div v-if="tags.length" class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-2">
               <span v-for="t in tags" :key="t"
-                class="text-[10px] text-neutral-400 uppercase tracking-wider">
+                class="text-[12px] text-neutral-400 uppercase tracking-wider">
                 #{{ t }}
               </span>
             </div>
@@ -181,8 +181,8 @@ const goChapter = (num) =>
       </div>
 
       <!-- ───── Content ───── -->
-      <div class="relative z-10 max-w-5xl mx-auto px-4 pb-16">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div class="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 pb-20">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-16">
 
           <!-- Main Column -->
           <div class="lg:col-span-2 space-y-10">
@@ -192,7 +192,7 @@ const goChapter = (num) =>
               <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Synopsis</h2>
               <div class="relative">
                 <div 
-                  class="text-[15px] leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-line transition-all duration-500 ease-in-out overflow-hidden relative"
+                  class="text-[17px] leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-line transition-all duration-500 ease-in-out overflow-hidden relative"
                   :class="[synopsisExpanded ? 'max-h-[2000px]' : 'max-h-[160px]']"
                 >
                   {{ novel.synopsis || 'No synopsis available.' }}
@@ -247,7 +247,7 @@ const goChapter = (num) =>
                     <span class="truncate font-medium text-neutral-700 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">{{ ch.title }}</span>
                   </div>
                   <div class="flex items-center gap-3">
-                    <span class="text-[11px] text-neutral-400 flex-shrink-0">{{ formatDate(ch.created_at) }}</span>
+                    <span class="text-[13px] text-neutral-400 flex-shrink-0">{{ formatDate(ch.created_at) }}</span>
                     <!-- SUPERADMIN: Edit Chapter (small icon) -->
                     <button v-if="auth.isSuperAdmin" @click.stop="router.push(`/admin/edit-chapter/${ch.id}`)" class="text-neutral-400 hover:text-red-500 p-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>

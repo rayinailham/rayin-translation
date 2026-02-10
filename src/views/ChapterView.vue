@@ -20,7 +20,7 @@ const sidebarOpen = ref(false)
 const loaded = ref(false)
 
 // ── Reader Settings (persisted) ──
-const fontSize = ref(parseInt(localStorage.getItem('readerFontSize') || '18'))
+const fontSize = ref(parseInt(localStorage.getItem('readerFontSize') || '20'))
 const fontFamily = ref(localStorage.getItem('readerFontFamily') || 'Poppins, sans-serif')
 
 watch(fontSize, (v) => localStorage.setItem('readerFontSize', v))
@@ -117,7 +117,7 @@ const goChapter = (num) =>
         
         <!-- SUPERADMIN: Edit Chapter Button -->
         <router-link v-if="auth.isSuperAdmin && chapter" :to="`/admin/edit-chapter/${chapter.id}`" 
-            class="ml-3 text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900 hover:bg-red-100 transition">
+            class="ml-3 text-[12px] font-bold uppercase tracking-wider text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded border border-red-200 dark:border-red-900 hover:bg-red-100 transition">
             Edit
         </router-link>
       </template>
@@ -144,7 +144,7 @@ const goChapter = (num) =>
           <!-- Prev -->
           <button v-if="prevChapter" @click="goChapter(prevChapter.chapter_number)"
             class="flex-1 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg text-left hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition min-w-0">
-            <span class="text-[10px] text-neutral-400 uppercase tracking-wider block">Previous</span>
+            <span class="text-[12px] text-neutral-400 uppercase tracking-wider block">Previous</span>
             <span class="text-sm font-medium truncate block mt-0.5">
               Ch.{{ prevChapter.chapter_number }} – {{ prevChapter.title }}
             </span>
@@ -169,7 +169,7 @@ const goChapter = (num) =>
           <!-- Next -->
           <button v-if="nextChapter" @click="goChapter(nextChapter.chapter_number)"
             class="flex-1 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg text-right hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition min-w-0">
-            <span class="text-[10px] text-neutral-400 uppercase tracking-wider block">Next</span>
+            <span class="text-[12px] text-neutral-400 uppercase tracking-wider block">Next</span>
             <span class="text-sm font-medium truncate block mt-0.5">
               Ch.{{ nextChapter.chapter_number }} – {{ nextChapter.title }}
             </span>

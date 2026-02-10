@@ -171,7 +171,7 @@ onUnmounted(() => clearInterval(slideTimer))
  
             <!-- Info -->
             <div class="flex-1 text-white text-center sm:text-left min-w-0 pb-12 sm:pb-0">
-              <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2 opacity-80">Featured Novel</p>
+              <p class="text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2 opacity-80">Featured Novel</p>
               <h2
                 class="text-xl sm:text-2xl md:text-3xl font-black leading-tight cursor-pointer hover:text-neutral-200 transition-colors line-clamp-2 md:line-clamp-none"
                 @click="goNovel(currentFeatured?.slug)">
@@ -181,7 +181,7 @@ onUnmounted(() => clearInterval(slideTimer))
               <!-- Genres -->
               <div class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-4">
                 <span v-for="g in parsedGenres" :key="g"
-                  class="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-white/10 backdrop-blur-md border border-white/5 rounded shadow-sm">
+                  class="px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider bg-white/10 backdrop-blur-md border border-white/5 rounded shadow-sm">
                   {{ g }}
                 </span>
               </div>
@@ -192,7 +192,7 @@ onUnmounted(() => clearInterval(slideTimer))
               </p>
  
               <!-- Author -->
-              <p class="mt-4 text-[10px] sm:text-xs text-neutral-500 font-medium tracking-wide">
+              <p class="mt-4 text-[12px] sm:text-xs text-neutral-500 font-medium tracking-wide">
                 by <span class="text-neutral-300">{{ currentFeatured?.author }}</span>
               </p>
             </div>
@@ -245,11 +245,11 @@ onUnmounted(() => clearInterval(slideTimer))
               </div>
               <!-- Info -->
               <div class="flex-1 min-w-0 flex flex-col justify-center">
-                <h3 class="text-[15px] font-bold truncate cursor-pointer hover:text-black dark:hover:text-white transition-colors"
+                <h3 class="text-[17px] font-bold truncate cursor-pointer hover:text-black dark:hover:text-white transition-colors"
                   @click="goNovel(novel.slug)">
                   {{ novel.title }}
                 </h3>
-                <p class="text-[11px] font-medium text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
+                <p class="text-[13px] font-medium text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
 
                 <div class="mt-3 space-y-1.5">
                   <div v-for="ch in novel.chapters" :key="ch.id"
@@ -259,7 +259,7 @@ onUnmounted(() => clearInterval(slideTimer))
                       @click="goChapter(novel.slug, ch.chapter_number)">
                       Ch.{{ ch.chapter_number }}<span class="mx-1.5 opacity-30 text-neutral-400">–</span>{{ ch.title }}
                     </span>
-                    <span class="text-neutral-400 dark:text-neutral-600 flex-shrink-0 text-[10px] font-mono">
+                    <span class="text-neutral-400 dark:text-neutral-600 flex-shrink-0 text-[12px] font-mono">
                       {{ timeAgo(ch.created_at) }}
                     </span>
                   </div>
@@ -301,7 +301,7 @@ onUnmounted(() => clearInterval(slideTimer))
               <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" alt="" />
               <div class="flex-1 min-w-0">
                 <h4 class="text-sm font-medium truncate">{{ novel.title }}</h4>
-                <p class="text-[11px] text-neutral-400 truncate">{{ novel.author }}</p>
+                <p class="text-[13px] text-neutral-400 truncate">{{ novel.author }}</p>
               </div>
             </div>
 

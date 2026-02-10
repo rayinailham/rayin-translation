@@ -1,6 +1,6 @@
 <template>
   <footer class="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 transition-colors">
-    <div class="max-w-5xl mx-auto px-4 py-10">
+    <div class="max-w-7xl mx-auto px-4 py-10">
 
       <!-- Top row -->
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -20,7 +20,7 @@
       <div class="border-t border-neutral-200 dark:border-neutral-800 my-6" />
 
       <!-- Bottom row -->
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-neutral-400 dark:text-neutral-600">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[13px] text-neutral-400 dark:text-neutral-600">
         <span>© {{ new Date().getFullYear() }} Rayin Translation — All original works belong to their respective authors &amp; publishers.</span>
         <span class="hidden sm:inline">·</span>
         <span>For personal reading only.</span>

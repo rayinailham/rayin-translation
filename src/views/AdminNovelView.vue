@@ -66,9 +66,9 @@ async function loadNovel(slug) {
   if (data) {
     form.value = {
       ...data,
-      genres: Array.isArray(data.genres) ? data.genres.join(', ') : data.genres,
-      tags: Array.isArray(data.tags) ? data.tags.join(', ') : data.tags,
-      alternative_titles: Array.isArray(data.alternative_titles) ? data.alternative_titles.join(', ') : ''
+      genres: Array.isArray(data.genres) ? data.genres.join(', ') : (data.genres || ''),
+      tags: Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
+      alternative_titles: Array.isArray(data.alternative_titles) ? data.alternative_titles.join(', ') : (data.alternative_titles || '')
     }
   }
   loading.value = false
@@ -119,11 +119,15 @@ async function save() {
   try {
     const payload = {
       ...form.value,
-      genres: form.value.genres.split(',').map(s => s.trim()).filter(Boolean),
-      tags: form.value.tags.split(',').map(s => s.trim()).filter(Boolean),
-      alternative_titles: form.value.alternative_titles.split(',').map(s => s.trim()).filter(Boolean),
-      updated_at: new Date()
+      genres: (form.value.genres || '').split(',').map(s => s.trim()).filter(Boolean),
+      tags: (form.value.tags || '').split(',').map(s => s.trim()).filter(Boolean),
+      alternative_titles: (form.value.alternative_titles || '').split(',').map(s => s.trim()).filter(Boolean),
+      updated_at: new Date().toISOString()
     }
+
+    // Remove immutable/system fields from payload to prevent update errors
+    delete payload.id
+    delete payload.created_at
 
     if (!payload.slug) {
         payload.slug = payload.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -134,7 +138,7 @@ async function save() {
       const { error: err } = await supabase
         .from('novels')
         .update(payload)
-        .eq('id', form.value.id)
+        .eq('id', form.value.id) // Use original ID for the WHERE clause
       error = err
     } else {
       const { error: err } = await supabase

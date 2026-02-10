@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { logger } from '../utils/logger'
 
 export function useTranslator(form, aiSettings, japaneseText, translationNote) {
     const isTranslating = ref(false)
@@ -49,6 +50,13 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
             }
             form.value.content += '\n\n'
         }
+
+        logger.translation('Start', {
+            model: aiSettings.value.model,
+            max_tokens: aiSettings.value.max_tokens,
+            temperature: aiSettings.value.temperature,
+            japanese_length: japaneseText.value.length
+        })
         
         let reader = null
         abortController = new AbortController()
@@ -87,6 +95,8 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
                 requestBody.reasoning = { effort: 'high' }
             }
 
+            logger.translation('Sending Request', { body: requestBody })
+
             const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -105,6 +115,7 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
             }
 
             translationPhase.value = 'thinking'
+            logger.translation('Response Received', { status: response.status })
 
             reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
@@ -149,19 +160,34 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
                         if (content) {
                             if (translationPhase.value !== 'streaming') {
                                 translationPhase.value = 'streaming'
+                                logger.translation('Streaming Started')
                             }
                             translationTokens.value++
                             form.value.content += content
                         }
                     } catch (e) {
                             console.warn('Error parsing stream chunk', e);
+                            logger.error('[WEAK LINK] Stream Parse Error', { 
+                                raw: trimmedLine, 
+                                error: e.message,
+                                buffer_leftover: buffer 
+                            })
                     }
                 }
             }
+            
+            logger.translation('Complete', { 
+                tokens: translationTokens.value, 
+                elapsed: formatElapsed(translationElapsed.value),
+                hasReasoning: !!reasoningContent.value
+            })
 
         } catch (e) {
             if (e.name !== 'AbortError') {
                 translationError.value = e.message
+                logger.error('Translation Failed', e)
+            } else {
+                logger.translation('Aborted by user')
             }
         } finally {
             // Properly release the stream reader to free up the network connection
@@ -184,6 +210,7 @@ export function useTranslator(form, aiSettings, japaneseText, translationNote) {
     function cancelTranslation() {
         if (abortController) {
             abortController.abort()
+            logger.translation('Cancel requested')
         }
     }
 

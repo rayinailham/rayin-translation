@@ -1,15 +1,16 @@
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../supabase'
+import { logger } from '../utils/logger'
 
 const props = defineProps(['excludeNovelId'])
-import { watch } from 'vue'
 const router = useRouter()
 const novels = ref([])
 
 async function fetchRecommendations() {
+    logger.fetch('Recommendations Start')
     // Fetch a batch of novels
     const { data } = await supabase
         .from('novels')
@@ -21,7 +22,9 @@ async function fetchRecommendations() {
         let candidates = data.filter(n => n.id !== props.excludeNovelId)
         // Shuffle and pick 3
         candidates.sort(() => 0.5 - Math.random())
-        novels.value = candidates.slice(0, 3)
+        const selected = candidates.slice(0, 3)
+        novels.value = selected
+        logger.fetch('Recommendations Loaded', { count: selected.length })
     }
 }
 
@@ -29,6 +32,7 @@ onMounted(fetchRecommendations)
 watch(() => props.excludeNovelId, fetchRecommendations)
 
 const goNovel = (slug) => {
+    logger.novel('Recommendation Clicked', { slug })
     router.push({ name: 'novel', params: { slug } })
 }
 </script>

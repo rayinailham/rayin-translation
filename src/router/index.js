@@ -1,5 +1,6 @@
 
 import { createRouter, createWebHistory } from 'vue-router'
+import { logger } from '../utils/logger'
 import HomeView from '../views/HomeView.vue'
 import NovelView from '../views/NovelView.vue'
 import ChapterView from '../views/ChapterView.vue'
@@ -46,6 +47,22 @@ const router = createRouter({
         component: AdminChapterView
     }
   ]
+})
+
+router.beforeEach((to, from, next) => {
+    logger.info(`Navigation: ${from.name || 'init'} -> ${to.name}`, { 
+        to: to.fullPath, 
+        params: to.params 
+    })
+    next()
+})
+
+router.afterEach((to) => {
+    logger.info(`Navigated to: ${to.name}`)
+})
+
+router.onError((error) => {
+    logger.error('Router Error', error)
 })
 
 export default router

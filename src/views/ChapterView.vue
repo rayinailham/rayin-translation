@@ -8,6 +8,7 @@ import SiteFooter from '../components/SiteFooter.vue'
 import { marked } from 'marked'
 import { useAuthStore } from '../stores/auth'
 import GlobalHeader from '../components/GlobalHeader.vue'
+import { logger } from '../utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +54,8 @@ async function fetchData() {
   const slug = route.params.slug
   const chapterNum = route.params.chapter
 
+  logger.fetch('Chapter Data Start', { slug, chapterNum })
+
   const { data: novelData } = await supabase
     .from('novels')
     .select('*')
@@ -79,12 +82,20 @@ async function fetchData() {
 
     if (chapterData) {
       chapter.value = chapterData
+      logger.fetch('Chapter Loaded', { title: chapterData.title, id: chapterData.id })
+      
       // Increment view count
       supabase.from('chapters')
         .update({ views: (chapterData.views || 0) + 1 })
         .eq('id', chapterData.id)
-        .then(() => {}) // Fire and forget
+        .then(() => {
+            logger.chapter('View Count Incremented', { id: chapterData.id })
+        }) // Fire and forget
+    } else {
+        logger.error('Chapter Not Found', { slug, chapterNum })
     }
+  } else {
+      logger.error('Novel Not Found', { slug })
   }
 
   loaded.value = true

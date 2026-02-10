@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '../supabase'
+import { logger } from '../utils/logger'
 
 const DEFAULT_AI_SETTINGS = Object.freeze({
     temperature: 0.7,
@@ -27,6 +28,8 @@ export function useSettings(novel) {
             .order('name')
         presetsList.value = data || []
         
+        logger.preset('Loaded List', { count: presetsList.value.length })
+
         // Auto-select: novel-specific first, then default
         if (data && data.length > 0) {
             const novelPreset = novel.value ? data.find(p => p.novel_id === novel.value.id) : null
@@ -48,6 +51,7 @@ export function useSettings(novel) {
             model: preset.model || 'openrouter/pony-alpha',
             system_prompt: preset.system_prompt || '',
         }
+        logger.preset('Applied', { id: preset.id, name: preset.name })
     }
 
     function handlePresetChange(event) {
@@ -56,6 +60,7 @@ export function useSettings(novel) {
             activePresetId.value = null
             aiSettings.value = { ...DEFAULT_AI_SETTINGS }
             showPromptEditor.value = true
+            logger.preset('New Preset Selected')
             return
         }
         const preset = presetsList.value.find(p => p.id === id)
@@ -81,6 +86,8 @@ export function useSettings(novel) {
                 reasoning: aiSettings.value.reasoning,
                 updated_at: new Date().toISOString(),
             }
+            
+            logger.preset('Saving...', payload)
     
             if (activePresetId.value) {
                 // Update existing
@@ -95,6 +102,7 @@ export function useSettings(novel) {
                 if (idx !== -1) {
                     presetsList.value[idx] = { ...presetsList.value[idx], ...payload }
                 }
+                logger.preset('Updated existing', { id: activePresetId.value })
             } else {
                 // Create new
                 const name = prompt('Preset name (e.g. "casual", "formal"):')
@@ -118,10 +126,12 @@ export function useSettings(novel) {
                          if (a.is_default === b.is_default) return a.name.localeCompare(b.name)
                          return a.is_default ? -1 : 1
                     })
+                    logger.preset('Created new', { id: data[0].id, name })
                 }
             }
         } catch (e) {
             alert('Save failed: ' + e.message)
+            logger.error('Preset Save Failed', e)
         } finally {
             savingPreset.value = false
         }
@@ -135,6 +145,9 @@ export function useSettings(novel) {
         
         const { error } = await supabase.from('translation_settings').delete().eq('id', activePresetId.value)
         if (error) { alert(error.message); return }
+        
+        logger.preset('Deleted', { id: activePresetId.value, name: preset?.name })
+        
         activePresetId.value = null
         await loadPresets()
     }
@@ -147,6 +160,7 @@ export function useSettings(novel) {
             aiSettings.value = { ...DEFAULT_AI_SETTINGS }
             activePresetId.value = null
         }
+        logger.preset('Reset to Default')
     }
 
     return {

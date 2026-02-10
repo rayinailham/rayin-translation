@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../supabase'
+import { logger } from '../utils/logger'
 
 export function useAdminChapter() {
     const router = useRouter()
@@ -36,6 +37,7 @@ export function useAdminChapter() {
     async function loadNovels() {
         const { data } = await supabase.from('novels').select('id, title, slug, synopsis').order('title')
         novelsList.value = data || []
+        logger.novel('Loaded List', { count: novelsList.value.length })
     }
 
     async function fetchChapters(novelId) {
@@ -44,12 +46,14 @@ export function useAdminChapter() {
             .eq('novel_id', novelId)
             .order('chapter_number', { ascending: false })
         chaptersList.value = data || []
+        logger.chapter('Fetched List', { novelId, count: chaptersList.value.length })
     }
 
     async function loadNovelBySlug(slug) {
         const { data } = await supabase.from('novels').select('id, title, slug, synopsis').eq('slug', slug).maybeSingle()
         if (data) {
             novel.value = data
+            logger.novel('Loaded Details', { slug, title: data.title })
             await fetchChapters(data.id)
             
             // Predict next chapter number from already-fetched chaptersList (sorted DESC)
@@ -63,6 +67,7 @@ export function useAdminChapter() {
         const { data } = await supabase.from('chapters').select('*').eq('id', chapterId).maybeSingle()
         if (data) {
             form.value = data
+            logger.chapter('Loaded Details', { id: chapterId, title: data.title, number: data.chapter_number })
             // Load novel info if not present
             if (!novel.value || novel.value.id !== data.novel_id) {
                 const { data: n } = await supabase.from('novels').select('id, title, slug, synopsis').eq('id', data.novel_id).maybeSingle()
@@ -97,6 +102,8 @@ export function useAdminChapter() {
                 novel_id: novel.value.id,
                 updated_at: new Date().toISOString()
             }
+            
+            logger.chapter('Saving...', { ...payload, content_length: payload.content?.length })
 
             if (!payload.title) throw new Error('Chapter title is required.')
 
@@ -104,9 +111,11 @@ export function useAdminChapter() {
             if (isEdit.value) {
                  const { error } = await supabase.from('chapters').update(payload).eq('id', route.params.chapterId)
                  if (error) throw error
+                 logger.chapter('Updated Existing', { id: route.params.chapterId })
             } else {
                  const { data: newCh, error } = await supabase.from('chapters').insert(payload).select().single()
                  if (error) throw error
+                 logger.chapter('Created New', { id: newCh.id })
                  // Update URL without reloading page completely
                  await router.replace({ name: 'edit-chapter', params: { chapterId: newCh.id } })
             }
@@ -116,6 +125,7 @@ export function useAdminChapter() {
         } catch (err) {
             console.error('Save error:', err)
             errorMsg.value = err.message || 'Failed to save chapter'
+            logger.error('Chapter Save Failed', err)
         } finally {
             saving.value = false
         }
@@ -125,7 +135,10 @@ export function useAdminChapter() {
         if (!confirm('Delete this chapter permanently?')) return
         const { error } = await supabase.from('chapters').delete().eq('id', route.params.chapterId)
         if (error) alert(error.message)
-        else router.push({ name: 'novel', params: { slug: novel.value.slug } })
+        else {
+            logger.chapter('Deleted', { id: route.params.chapterId })
+            router.push({ name: 'novel', params: { slug: novel.value.slug } })
+        }
     }
 
     async function handleNovelChange(event, loadPresetsCallback) {
@@ -133,6 +146,7 @@ export function useAdminChapter() {
         const selected = novelsList.value.find(n => n.id === selectedId)
         if (selected) {
             novel.value = selected
+            logger.novel('Changed (Admin)', { id: selected.id, title: selected.title })
             await fetchChapters(selected.id)
             if (loadPresetsCallback) await loadPresetsCallback() // Callback to refresh presets
             
@@ -149,8 +163,10 @@ export function useAdminChapter() {
     function handleChapterChange(event) {
         const val = event.target.value
         if (val === '__new__') {
+            logger.chapter('Switching to New Chapter Mode')
             router.push({ name: 'add-chapter', params: { slug: novel.value.slug } })
         } else {
+            logger.chapter('Switching Chapter', { id: val })
             router.push({ name: 'edit-chapter', params: { chapterId: val } })
         }
     }

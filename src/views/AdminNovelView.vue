@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import { useAuthStore } from '../stores/auth'
+import { logger } from '../utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,6 +47,7 @@ onMounted(async () => {
   // Fetch all novels for the switcher
   const { data: allNovels } = await supabase.from('novels').select('id, title, slug').order('title')
   novelsList.value = allNovels || []
+  logger.novel('Loaded List (Admin)', { count: novelsList.value.length })
 
   loadNovel(route.params.slug)
 })
@@ -53,6 +55,7 @@ onMounted(async () => {
 async function loadNovel(slug) {
   if (!slug) {
       resetForm()
+      logger.novel('New Novel Mode')
       return
   }
 
@@ -70,6 +73,7 @@ async function loadNovel(slug) {
       tags: Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
       alternative_titles: Array.isArray(data.alternative_titles) ? data.alternative_titles.join(', ') : (data.alternative_titles || '')
     }
+    logger.novel('Loaded Details', { slug, title: data.title })
   }
   loading.value = false
 }
@@ -106,8 +110,10 @@ watch(errorMsg, (val) => {
 function switchNovel(event) {
     const slug = event.target.value
     if (slug === '__new__') {
+        logger.novel('Switching to New Novel Mode')
         router.push({ name: 'add-novel' })
     } else if (slug) {
+        logger.novel('Switching Novel', { slug })
         router.push({ name: 'edit-novel', params: { slug } })
     }
 }
@@ -133,6 +139,8 @@ async function save() {
         payload.slug = payload.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
     }
 
+    logger.novel('Saving...', { title: payload.title, slug: payload.slug })
+
     let error = null
     if (isEdit.value) {
       const { error: err } = await supabase
@@ -140,11 +148,13 @@ async function save() {
         .update(payload)
         .eq('id', form.value.id) // Use original ID for the WHERE clause
       error = err
+      if (!error) logger.novel('Updated Existing', { id: form.value.id })
     } else {
       const { error: err } = await supabase
         .from('novels')
         .insert(payload)
       error = err
+      if (!error) logger.novel('Created New', { title: payload.title })
     }
 
     if (error) throw error
@@ -152,6 +162,7 @@ async function save() {
 
   } catch (err) {
     errorMsg.value = err.message
+    logger.error('Novel Save Failed', err)
   } finally {
     saving.value = false
   }
@@ -161,7 +172,10 @@ async function deleteNovel() {
     if (!confirm('Delete this novel permanently? This cannot be undone.')) return
     const { error } = await supabase.from('novels').delete().eq('id', form.value.id)
     if (error) alert(error.message)
-    else router.push('/')
+    else {
+        logger.novel('Deleted', { id: form.value.id, title: form.value.title })
+        router.push('/')
+    }
 }
 </script>
 

@@ -6,6 +6,7 @@ import { supabase } from '../supabase'
 import SiteFooter from '../components/SiteFooter.vue'
 import GlobalHeader from '../components/GlobalHeader.vue'
 import { useAuthStore } from '../stores/auth'
+import { logger } from '../utils/logger'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -83,6 +84,8 @@ function openPreview(novel) {
 
 // ── Data Fetching ──
 onMounted(async () => {
+  logger.fetch('Home Data Start')
+  
   try {
     // Featured novels for carousel
     const { data: featured, error: featuredError } = await supabase
@@ -96,9 +99,13 @@ onMounted(async () => {
     if (featured?.length) {
       featuredNovels.value = featured
       resetTimer()
+      logger.fetch('Featured Loaded', { count: featured.length })
     }
   } catch (err) {
-    if (err.name !== 'AbortError') console.error('Error fetching featured:', err)
+    if (err.name !== 'AbortError') {
+        console.error('Error fetching featured:', err)
+        logger.error('Fetch Featured Failed', err)
+    }
   }
 
   try {
@@ -124,9 +131,13 @@ onMounted(async () => {
           .sort((a, b) => b.chapter_number - a.chapter_number)
           .slice(0, 3)
       }))
+      logger.fetch('Latest Loaded', { count: latestNovels.value.length })
     }
   } catch (err) {
-    if (err.name !== 'AbortError') console.error('Error fetching latest:', err)
+    if (err.name !== 'AbortError') {
+        console.error('Error fetching latest:', err)
+        logger.error('Fetch Latest Failed', err)
+    }
   }
 
   try {
@@ -163,8 +174,18 @@ onMounted(async () => {
       
     if (monthlyError) throw monthlyError
     if (monthly) popularData.value.monthly = monthly
+    
+    logger.fetch('Popular Loaded', { 
+        all: popularData.value.all.length, 
+        weekly: popularData.value.weekly.length, 
+        monthly: popularData.value.monthly.length 
+    })
+
   } catch (err) {
-    if (err.name !== 'AbortError') console.error('Error fetching popular:', err)
+    if (err.name !== 'AbortError') {
+        console.error('Error fetching popular:', err)
+        logger.error('Fetch Popular Failed', err)
+    }
   }
 })
 

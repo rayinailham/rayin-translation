@@ -143,31 +143,57 @@ async function save() {
 
     logger.novel('Saving...', { title: payload.title, slug: payload.slug })
     
-    // Refresh auth session safely
-    await safeRefreshSession(supabase, 10000)
+    // Retry loop for 401 errors
+    let retries = 1
+    while (retries >= 0) {
+        try {
+            // Refresh auth session safely before attempt
+            await safeRefreshSession(supabase, 10000)
 
-    let error = null
-    if (isEdit.value) {
-      const { error: err } = await withTimeout(
-        supabase.from('novels').update(payload).eq('id', form.value.id),
-        60000,
-        'Novel update'
-      )
-      error = err
-      if (!error) logger.novel('Updated Existing', { id: form.value.id })
-    } else {
-      const { error: err } = await withTimeout(
-        supabase.from('novels').insert(payload),
-        60000,
-        'Novel insert'
-      )
-      error = err
-      if (!error) logger.novel('Created New', { title: payload.title })
+            let error = null
+            if (isEdit.value) {
+              const { error: err } = await withTimeout(
+                supabase.from('novels').update(payload).eq('id', form.value.id),
+                60000,
+                'Novel update'
+              )
+              error = err
+              if (!error) logger.novel('Updated Existing', { id: form.value.id })
+            } else {
+              const { error: err } = await withTimeout(
+                supabase.from('novels').insert(payload),
+                60000,
+                'Novel insert'
+              )
+              error = err
+              if (!error) logger.novel('Created New', { title: payload.title })
+            }
+
+            if (error) {
+                if (error.code === 'PGRST301' || error.message.includes('JWT')) {
+                     logger.warn('Save failed with 401/JWT error, attempting refresh and retry...', error)
+                     throw new Error('JWT_EXPIRED')
+                }
+                throw error
+            }
+            
+            // Success
+            router.push({ name: 'novel', params: { slug: payload.slug } })
+            break
+
+        } catch (err) {
+            if (retries > 0 && err.message === 'JWT_EXPIRED') {
+                 // Force refresh
+                 const { error: refreshError } = await supabase.auth.refreshSession()
+                 if (refreshError) logger.warn('Force refresh failed', refreshError)
+                 retries--
+                 continue
+            }
+            
+            // Propagate error
+            throw err
+        }
     }
-
-    if (error) throw error
-    router.push({ name: 'novel', params: { slug: payload.slug } })
-
   } catch (err) {
     errorMsg.value = err.message
     logger.error('Novel Save Failed', err)

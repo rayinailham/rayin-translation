@@ -171,28 +171,55 @@ export function useAdminChapter() {
 
             let result
             
-            const options = { abortSignal: controller.signal }
+            // Retry logic for 401 errors
+            let retries = 1
+            while (retries >= 0) {
+                try {
+                    const query = supabase
+                        .from('chapters')
+                        
+                    if (isEdit.value) {
+                       result = await query
+                            .update(payload)
+                            .eq('id', route.params.chapterId)
+                            .select()
+                            .single()
+                            .abortSignal(controller.signal)
+                    } else {
+                       result = await query
+                            .insert(payload)
+                            .select()
+                            .single()
+                            .abortSignal(controller.signal)
+                    }
 
-            if (isEdit.value) {
-                // Update
-                result = await supabase
-                    .from('chapters')
-                    .update(payload)
-                    .eq('id', route.params.chapterId)
-                    .select()
-                    .single()
-                    .abortSignal(controller.signal)
-            } else {
-                // Create
-                result = await supabase
-                    .from('chapters')
-                    .insert(payload)
-                    .select()
-                    .single()
-                    .abortSignal(controller.signal)
+                    if (result.error) {
+                        // Check if error is 401 (JWT expired)
+                        if (result.error.code === 'PGRST301' || result.error.message.includes('JWT')) {
+                            logger.warn('Save failed with 401/JWT error, attempting refresh and retry...', result.error)
+                            if (retries > 0) {
+                                const { error: refreshError } = await supabase.auth.refreshSession()
+                                if (refreshError) throw refreshError
+                                retries--
+                                continue
+                            }
+                        }
+                        throw result.error
+                    }
+                    
+                    // Success
+                    break
+                } catch (err) {
+                    if (retries > 0 && (err.message.includes('JWT') || err.code === 'PGRST301')) {
+                         logger.warn('Caught JWT error, retrying...', err)
+                         const { error: refreshError } = await supabase.auth.refreshSession()
+                         if (refreshError) throw refreshError
+                         retries--
+                         continue
+                    }
+                    throw err
+                }
             }
-
-            if (result.error) throw result.error
 
             successMsg.value = 'Chapter saved successfully'
             logger.info('Chapter saved', result.data.id)

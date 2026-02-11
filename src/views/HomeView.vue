@@ -2,20 +2,26 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { supabase } from '../supabase'
+// import { supabase } from '../supabase' // Moved to store
 import SiteFooter from '../components/SiteFooter.vue'
 import GlobalHeader from '../components/GlobalHeader.vue'
 import { useAuthStore } from '../stores/auth'
 import { logger } from '../utils/logger'
 
+import { useHomeStore } from '../stores/home'
+
 const router = useRouter()
 const auth = useAuthStore()
+const homeStore = useHomeStore()
 
 // ── Carousel ──
-const featuredNovels = ref([])
 const currentSlide = ref(0)
 let slideTimer = null
 
+const featuredNovels = computed(() => homeStore.featuredNovels)
+const isLoading = computed(() => !homeStore.isReady && homeStore.isLoading)
+const latestNovels = computed(() => homeStore.latestNovels)
+const popularData = computed(() => homeStore.popularData)
 const currentFeatured = computed(() => featuredNovels.value[currentSlide.value] || null)
 
 const parsedGenres = computed(() => {
@@ -47,12 +53,8 @@ function resetTimer() {
   }, 6000)
 }
 
-// ── Latest Updates ──
-const latestNovels = ref([])
-
 // ── Popular Novels ──
 const popularTab = ref('all')
-const popularData = ref({ all: [], weekly: [], monthly: [] })
 const currentPopular = computed(() => popularData.value[popularTab.value] || [])
 
 // ── Time Formatting ──
@@ -83,109 +85,20 @@ function openPreview(novel) {
 }
 
 // ── Data Fetching ──
+// ── Data Fetching ──
+// ── Data Fetching ──
 onMounted(async () => {
-  logger.fetch('Home Data Start')
-  
-  try {
-    // Featured novels for carousel
-    const { data: featured, error: featuredError } = await supabase
-      .from('novels')
-      .select('*')
-      .not('banner_url', 'is', null)
-      .limit(10)
-
-    if (featuredError) throw featuredError
-    
-    if (featured?.length) {
-      featuredNovels.value = featured
+  // 1. If store has data, it will be reactive immediately
+  if (homeStore.featuredNovels.length > 0) {
       resetTimer()
-      logger.fetch('Featured Loaded', { count: featured.length })
-    }
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-        console.error('Error fetching featured:', err)
-        logger.error('Fetch Featured Failed', err)
-    }
   }
 
-  try {
-    // Latest updated novels with their chapters (published)
-    let latestQuery = supabase
-      .from('novels')
-      .select('*, chapters(id, chapter_number, title, published_at)')
-      .order('updated_at', { ascending: false })
-      .limit(15)
-
-    if (!auth.isSuperAdmin) {
-        // In a real app, you'd filter the subquery for chapters published_at <= now()
-        // For now, sorting by published_at DESC is the main priority
-    }
-
-    const { data: latest, error: latestError } = await latestQuery
-    if (latestError) throw latestError
-
-    if (latest) {
-      latestNovels.value = latest.map(n => ({
-        ...n,
-        chapters: (n.chapters || [])
-          .sort((a, b) => b.chapter_number - a.chapter_number)
-          .slice(0, 3)
-      }))
-      logger.fetch('Latest Loaded', { count: latestNovels.value.length })
-    }
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-        console.error('Error fetching latest:', err)
-        logger.error('Fetch Latest Failed', err)
-    }
-  }
-
-  try {
-    // Popular — All Time
-    const { data: allTime, error: allTimeError } = await supabase
-      .from('novels')
-      .select('id, title, slug, image_url, author')
-      .order('created_at', { ascending: true })
-      .limit(10)
-      
-    if (allTimeError) throw allTimeError
-    if (allTime) popularData.value.all = allTime
-
-    // Popular — Weekly
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-    const { data: weekly, error: weeklyError } = await supabase
-      .from('novels')
-      .select('id, title, slug, image_url, author')
-      .gte('updated_at', weekAgo)
-      .order('updated_at', { ascending: false })
-      .limit(10)
-      
-    if (weeklyError) throw weeklyError
-    if (weekly) popularData.value.weekly = weekly
-
-    // Popular — Monthly
-    const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString()
-    const { data: monthly, error: monthlyError } = await supabase
-      .from('novels')
-      .select('id, title, slug, image_url, author')
-      .gte('updated_at', monthAgo)
-      .order('updated_at', { ascending: false })
-      .limit(10)
-      
-    if (monthlyError) throw monthlyError
-    if (monthly) popularData.value.monthly = monthly
-    
-    logger.fetch('Popular Loaded', { 
-        all: popularData.value.all.length, 
-        weekly: popularData.value.weekly.length, 
-        monthly: popularData.value.monthly.length 
-    })
-
-  } catch (err) {
-    if (err.name !== 'AbortError') {
-        console.error('Error fetching popular:', err)
-        logger.error('Fetch Popular Failed', err)
-    }
+  // 2. Trigger fetch (background update if data exists)
+  await homeStore.fetchHomeData()
+  
+  // 3. Reset timer if we just got new data and timer wasn't running
+  if (homeStore.featuredNovels.length > 0) {
+      resetTimer()
   }
 })
 
@@ -321,7 +234,12 @@ onUnmounted(() => clearInterval(slideTimer))
               </div>
             </div>
 
-            <p v-if="!latestNovels.length" class="text-sm text-neutral-400 text-center py-10">No novels found.</p>
+            <!-- Loading State -->
+            <div v-if="isLoading" class="col-span-full flex justify-center py-20">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white opacity-50"></div>
+            </div>
+
+            <p v-else-if="!latestNovels.length" class="text-sm text-neutral-400 text-center py-10">No novels found.</p>
           </div>
         </main>
 

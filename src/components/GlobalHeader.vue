@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import AuthModal from './AuthModal.vue'
 
@@ -33,8 +33,18 @@ const openAuthModal = () => {
 
 const logout = async () => {
     await auth.signOut()
-    window.location.reload()
+    // auth.signOut() already redirects to home
 }
+
+const userDisplayName = computed(() => {
+    if (auth.userProfile?.username) return auth.userProfile.username
+    if (auth.user?.email) return auth.user.email.split('@')[0]
+    return 'User'
+})
+
+const userInitial = computed(() => {
+    return (userDisplayName.value[0] || 'U').toUpperCase()
+})
 
 </script>
 
@@ -75,14 +85,14 @@ const logout = async () => {
             >
                 <div class="flex flex-col items-end pr-1 overflow-hidden">
                     <span class="text-[11px] font-bold text-neutral-900 dark:text-neutral-100 leading-none truncate max-w-[100px]">
-                        {{ auth.userProfile?.username || auth.user.email.split('@')[0] }}
+                        {{ userDisplayName }}
                     </span>
                     <span class="text-[9px] font-bold uppercase tracking-widest text-neutral-400 group-hover:text-neutral-500 transition-colors">
                         Account
                     </span>
                 </div>
                 <div class="h-8 w-8 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-300 dark:from-neutral-700 dark:to-neutral-800 flex items-center justify-center text-[11px] font-bold border border-neutral-300 dark:border-neutral-700 shadow-inner group-hover:scale-105 transition-transform">
-                    {{ (auth.userProfile?.username || auth.user.email)[0].toUpperCase() }}
+                    {{ userInitial }}
                 </div>
             </button>
 

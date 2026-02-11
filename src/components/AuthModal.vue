@@ -28,8 +28,10 @@ async function handleSubmit() {
       })
       if (error) throw error
       // Successful login
+      // Successful login
       emit('close')
-      window.location.reload() // Refresh to update UI globally (lazy way, or rely on store reactivity)
+      // Removed window.location.reload() to prevent blank screen. 
+      // The auth store is reactive and will update the UI automatically.
     } else {
       const { error } = await supabase.auth.signUp({
         email: email.value,

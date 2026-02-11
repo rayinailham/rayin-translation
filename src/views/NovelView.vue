@@ -8,12 +8,16 @@ import { useAuthStore } from '../stores/auth'
 import GlobalHeader from '../components/GlobalHeader.vue'
 import { logger } from '../utils/logger'
 
+import { useNovelStore } from '../stores/novel'
+
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const novelStore = useNovelStore()
 
 const novel = ref(null)
 const chapters = ref([])
+// We only want 'loading' state if we have NO data to show
 const loaded = ref(false)
 const showImagePreview = ref(false)
 const synopsisExpanded = ref(false)
@@ -57,44 +61,47 @@ function formatDate(dateStr) {
 }
 
 // ── Fetch ──
+// ── Fetch ──
 async function fetchData() {
   const slug = route.params.slug
-  loaded.value = false
-  synopsisExpanded.value = false
-  
-  logger.fetch('Novel Data Start', { slug })
+  if (!slug) return
 
-  const { data: novelData } = await supabase
-    .from('novels')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  if (novelData) {
-    novel.value = novelData
-    logger.fetch('Novel Details Loaded', { title: novelData.title })
-
-    const { data: chapterData } = await supabase
-      .from('chapters')
-      .select('id, chapter_number, title, published_at, views')
-      .eq('novel_id', novelData.id)
-      .order('chapter_number', { ascending: true })
-
-    if (chapterData) {
-        chapters.value = chapterData
-        logger.fetch('Chapters List Loaded', { count: chapterData.length })
-    }
+  // 1. Check cache first for instant display
+  const cached = novelStore.getNovel(slug)
+  if (cached) {
+      novel.value = cached
+      chapters.value = cached.chapters || []
+      loaded.value = true
+      synopsisExpanded.value = false
   } else {
-      logger.error('Novel Not Found', { slug })
+      loaded.value = false // show spinner only if nothing in cache
   }
 
-  loaded.value = true
-  await nextTick()
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  // 2. Fetch fresh data (background update)
+  const fresh = await novelStore.fetchNovel(slug)
+  
+  if (fresh) {
+      // Update UI with fresh data
+      novel.value = fresh
+      chapters.value = fresh.chapters || []
+      loaded.value = true
+  }
 }
 
-onMounted(fetchData)
-watch(() => route.params.slug, fetchData)
+onMounted(async () => {
+    await fetchData()
+    // Scroll to top only on mount/route change, not every small update
+    if (!loaded.value) { 
+        // if we waited for load, scroll now. if cached, we are already there.
+         window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+})
+
+watch(() => route.params.slug, async () => {
+    synopsisExpanded.value = false
+    await fetchData()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
 
 // ── Navigation ──
 const goChapter = (num) =>

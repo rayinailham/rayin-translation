@@ -19,6 +19,7 @@ const novelStore = useNovelStore()
 
 // ── Carousel ──
 const currentSlide = ref(0)
+const hasRenderedOnce = ref(false)
 let slideTimer = null
 
 const featuredNovels = computed(() => homeStore.featuredNovels)
@@ -133,7 +134,7 @@ onUnmounted(() => clearInterval(slideTimer))
         </div>
       </div>
 
-      <Transition name="fade" mode="out-in">
+      <Transition name="fade" mode="out-in" :css="hasRenderedOnce" @after-enter="hasRenderedOnce = true">
         <div v-if="featuredNovels.length" :key="currentSlide" class="absolute inset-0">
           <!-- Background -->
           <div class="absolute inset-0">
@@ -150,7 +151,7 @@ onUnmounted(() => clearInterval(slideTimer))
                  @click="goNovel(currentFeatured?.slug)"
                  @mouseenter="novelStore.prefetchNovel(currentFeatured?.slug)">
               <img :src="currentFeatured?.image_url" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
-                :alt="currentFeatured?.title + ' cover'" width="192" height="288" />
+                :alt="currentFeatured?.title + ' cover'" width="192" height="288" loading="eager" decoding="async" />
             </div>
  
             <!-- Info -->
@@ -214,7 +215,7 @@ onUnmounted(() => clearInterval(slideTimer))
     </section>
 
     <!-- ───── Main Content ───── -->
-    <div class="max-w-7xl mx-auto px-4 py-10">
+    <div class="max-w-7xl mx-auto px-4 py-10" style="content-visibility: auto; contain-intrinsic-size: auto 800px;">
       <div class="flex flex-col lg:flex-row gap-10">
 
         <!-- Latest Updates -->
@@ -229,7 +230,7 @@ onUnmounted(() => clearInterval(slideTimer))
                  @mouseenter="novelStore.prefetchNovel(novel.slug)">
                 <img :src="novel.image_url"
                   class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
-                  @click.stop="openPreview(novel)" :alt="novel.title + ' cover'" loading="lazy" width="96" height="128" />
+                  @click.stop="openPreview(novel)" :alt="novel.title + ' cover'" loading="lazy" decoding="async" width="96" height="128" />
                 <div class="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/10 rounded-xl pointer-events-none" />
               </div>
               <!-- Info -->
@@ -258,10 +259,22 @@ onUnmounted(() => clearInterval(slideTimer))
               </div>
             </div>
 
-            <!-- Loading State -->
-            <div v-if="isLoading" class="col-span-full flex justify-center py-20">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white opacity-50"></div>
-            </div>
+            <!-- Loading Skeleton (matches card layout to prevent CLS) -->
+            <template v-if="isLoading">
+              <div v-for="i in 4" :key="'skel-' + i"
+                class="flex gap-5 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/40 border border-neutral-100 dark:border-neutral-800/50">
+                <div class="w-20 h-28 md:w-24 md:h-32 flex-shrink-0 bg-neutral-200 dark:bg-neutral-800 rounded-xl animate-pulse" />
+                <div class="flex-1 min-w-0 flex flex-col justify-center space-y-3">
+                  <div class="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4 animate-pulse" />
+                  <div class="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/3 animate-pulse" />
+                  <div class="space-y-2 mt-2">
+                    <div class="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-full animate-pulse" />
+                    <div class="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-5/6 animate-pulse" />
+                    <div class="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-4/5 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </template>
 
             <p v-else-if="!latestNovels.length" class="text-sm text-neutral-400 text-center py-10">No novels found.</p>
           </div>
@@ -295,7 +308,7 @@ onUnmounted(() => clearInterval(slideTimer))
                 class="text-base font-bold text-neutral-300 dark:text-neutral-600 w-5 text-center flex-shrink-0">
                 {{ i + 1 }}
               </span>
-              <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" :alt="novel.title + ' cover'" loading="lazy" width="36" height="52" />
+              <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" :alt="novel.title + ' cover'" loading="lazy" decoding="async" width="36" height="52" />
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-medium truncate">{{ novel.title }}</h3>
                 <p class="text-[13px] text-neutral-500 dark:text-neutral-400 truncate">{{ novel.author }}</p>

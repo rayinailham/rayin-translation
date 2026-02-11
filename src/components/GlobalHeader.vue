@@ -55,7 +55,7 @@ const userInitial = computed(() => {
       <!-- Logo area -->
       <div class="flex items-center gap-4 overflow-hidden">
         <router-link to="/" class="flex items-center gap-2 group transition-all duration-300 flex-shrink-0 text-neutral-800 dark:text-neutral-200 hover:opacity-70">
-            <img src="/Logo Rayin Translation.png" alt="Rayin Translation logo" class="h-6 w-6 object-contain group-hover:scale-105 transition-transform duration-300" width="24" height="24" />
+            <img src="/logo.webp" alt="Rayin Translation logo" class="h-6 w-6 object-contain group-hover:scale-105 transition-transform duration-300" width="24" height="24" />
             <span class="hidden sm:inline font-bold text-sm tracking-tight">
                 Rayin Translation
             </span>

@@ -35,11 +35,14 @@ export const useHomeStore = defineStore('home', () => {
         logger.fetch('Home Data Fetch Start', { forceRefresh, isStale })
 
         try {
+            // Priority: fetch above-fold content first to reduce LCP
             await Promise.allSettled([
                 fetchFeatured(),
-                fetchLatest(),
-                fetchPopular()
+                fetchLatest()
             ])
+            
+            // Below-fold content (popular sidebar) - non-blocking
+            fetchPopular()
             
             lastFetched.value = Date.now()
             isReady.value = true
@@ -62,6 +65,17 @@ export const useHomeStore = defineStore('home', () => {
         if (error) throw error
         if (data?.length) {
             featuredNovels.value = data
+            
+            // Preload first banner image for faster LCP
+            if (data[0].banner_url) {
+                const link = document.createElement('link')
+                link.rel = 'preload'
+                link.as = 'image'
+                link.href = data[0].banner_url
+                link.setAttribute('fetchpriority', 'high')
+                document.head.appendChild(link)
+            }
+            
             // Populate cache
             const novelStore = useNovelStore()
             data.forEach(n => novelStore.injectNovel(n))

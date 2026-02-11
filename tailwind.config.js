@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Poppins', 'sans-serif'],
+        sans: ['Poppins', 'Poppins Fallback', 'sans-serif'],
       },
       fontSize: {
         'xs': ['0.875rem', { lineHeight: '1.25rem' }],     // 12px -> 14px

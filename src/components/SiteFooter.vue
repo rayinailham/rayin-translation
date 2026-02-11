@@ -6,7 +6,7 @@
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
         <!-- Brand -->
         <router-link to="/" class="flex items-center gap-2 text-sm font-bold tracking-tight text-neutral-800 dark:text-neutral-200 hover:opacity-70 transition">
-          <img src="/Logo Rayin Translation.png" alt="Rayin Translation logo" class="h-5 w-5 object-contain" width="20" height="20" />
+          <img src="/logo.webp" alt="Rayin Translation logo" class="h-5 w-5 object-contain" width="20" height="20" />
           Rayin Translation
         </router-link>
 

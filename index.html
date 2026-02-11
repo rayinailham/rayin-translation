@@ -14,7 +14,7 @@
     <meta name="theme-color" content="#000000" />
 
     <!-- Favicon -->
-    <link rel="icon" href="/Logo%20Rayin%20Translation.png" type="image/png" />
+    <link rel="icon" href="/logo.webp" type="image/webp" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -32,6 +32,10 @@
         content="Read Japanese, Korean, and Chinese light novels & web novels translated to English for free." />
     <meta name="twitter:image" content="https://rayintranslation.com/Logo%20Rayin%20Translation.png" />
 
+    <!-- Preconnect to Supabase storage for faster image loading (LCP optimization) -->
+    <link rel="preconnect" href="https://ykceernevnnsbncuhygl.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://ykceernevnnsbncuhygl.supabase.co" />
+
     <!-- Fonts: preconnect then load with display=swap -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,8 +50,17 @@
 
     <!-- Inline critical CSS to prevent CLS from font loading -->
     <style>
+        /* Font fallback with size-matching metrics to reduce CLS during font swap */
+        @font-face {
+            font-family: 'Poppins Fallback';
+            src: local('Arial'), local('Helvetica Neue');
+            size-adjust: 112.5%;
+            ascent-override: 92%;
+            descent-override: 30%;
+            line-gap-override: 0%;
+        }
         /* Reserve layout space before Vue mounts */
-        body { margin: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { margin: 0; font-family: 'Poppins', 'Poppins Fallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         #app { min-height: 100vh; }
     </style>
 

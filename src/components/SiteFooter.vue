@@ -11,7 +11,7 @@
         </router-link>
 
         <!-- Tagline -->
-        <p class="text-xs text-neutral-400 dark:text-neutral-600 text-center">
+        <p class="text-xs text-neutral-500 dark:text-neutral-500 text-center">
           Free fan translations of web novels.
         </p>
       </div>
@@ -20,7 +20,7 @@
       <div class="border-t border-neutral-200 dark:border-neutral-800 my-6" />
 
       <!-- Bottom row -->
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[13px] text-neutral-400 dark:text-neutral-600">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-[13px] text-neutral-500 dark:text-neutral-500">
         <span>© {{ new Date().getFullYear() }} Rayin Translation — All original works belong to their respective authors &amp; publishers.</span>
         <span class="hidden sm:inline">·</span>
         <span>For personal reading only.</span>

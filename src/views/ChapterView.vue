@@ -167,8 +167,8 @@ const goChapter = (num) =>
     <button 
       v-if="!sidebarOpen"
       @click="sidebarOpen = true"
-      class="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl hover:scale-110 active:scale-95 transition-all group lg:bottom-10 lg:right-10"
-      aria-label="Settings"
+      class="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl hover:scale-110 active:scale-95 transition-all group lg:bottom-10 lg:right-10 min-w-[44px] min-h-[44px]"
+      aria-label="Reader settings"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"

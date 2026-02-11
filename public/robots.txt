@@ -1,0 +1,8 @@
+# robots.txt for rayintranslation.com
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://rayintranslation.com/sitemap.xml

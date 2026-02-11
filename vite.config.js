@@ -14,6 +14,8 @@ export default defineConfig({
   build: {
     // Enable CSS code splitting for lazy-loaded routes
     cssCodeSplit: true,
+    // Minify CSS more aggressively
+    cssMinify: 'lightningcss',
     // Improve chunk splitting
     rollupOptions: {
       output: {

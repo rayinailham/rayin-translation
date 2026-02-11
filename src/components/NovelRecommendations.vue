@@ -49,7 +49,7 @@ const goNovel = (slug) => {
             class="group cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/20 p-2 sm:p-4 rounded-xl transition"
           >
               <div class="aspect-[2/3] bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden mb-3 md:mb-4 shadow-sm group-hover:shadow-md transition">
-                  <img :src="novel.image_url" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" :alt="novel.title + ' cover'" loading="lazy" />
+                  <img :src="novel.image_url" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" :alt="novel.title + ' cover'" loading="lazy" width="200" height="300" />
               </div>
               <h4 class="font-bold text-sm md:text-base line-clamp-2 mb-1 group-hover:underline decoration-1 underline-offset-4 text-neutral-800 dark:text-neutral-100">{{ novel.title }}</h4>
               <p class="text-[13px] md:text-xs text-neutral-500">{{ novel.author }}</p>

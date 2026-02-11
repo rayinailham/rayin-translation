@@ -118,9 +118,23 @@ onUnmounted(() => clearInterval(slideTimer))
     <GlobalHeader />
 
     <!-- ───── Carousel ───── -->
-    <section v-if="featuredNovels.length" class="relative overflow-hidden bg-black h-[520px] sm:h-[450px] md:h-[500px]">
+    <section class="relative overflow-hidden bg-black h-[520px] sm:h-[450px] md:h-[500px]" aria-label="Featured novels carousel">
+      <!-- Skeleton placeholder while loading -->
+      <div v-if="!featuredNovels.length" class="absolute inset-0 flex items-center justify-center">
+        <div class="max-w-7xl mx-auto px-6 w-full flex flex-col sm:flex-row gap-6 sm:gap-10 items-center justify-center">
+          <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 aspect-[2/3] bg-neutral-800 rounded-lg animate-pulse" />
+          <div class="flex-1 space-y-4 w-full max-w-md sm:max-w-none">
+            <div class="h-3 bg-neutral-800 rounded w-24 animate-pulse" />
+            <div class="h-8 bg-neutral-800 rounded w-3/4 animate-pulse" />
+            <div class="flex gap-2"><div class="h-5 bg-neutral-800 rounded w-16 animate-pulse" /><div class="h-5 bg-neutral-800 rounded w-20 animate-pulse" /></div>
+            <div class="h-4 bg-neutral-800 rounded w-full animate-pulse" />
+            <div class="h-4 bg-neutral-800 rounded w-2/3 animate-pulse" />
+          </div>
+        </div>
+      </div>
+
       <Transition name="fade" mode="out-in">
-        <div :key="currentSlide" class="absolute inset-0">
+        <div v-if="featuredNovels.length" :key="currentSlide" class="absolute inset-0">
           <!-- Background -->
           <div class="absolute inset-0">
             <img v-if="currentFeatured?.banner_url" :src="currentFeatured.banner_url"
@@ -141,7 +155,7 @@ onUnmounted(() => clearInterval(slideTimer))
  
             <!-- Info -->
             <div class="flex-1 text-white text-center sm:text-left min-w-0 pb-12 sm:pb-0">
-              <p class="text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2 opacity-80">Featured Novel</p>
+              <p class="text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.2em] text-neutral-300 mb-2">Featured Novel</p>
               <h2
                 class="text-xl sm:text-2xl md:text-3xl font-black leading-tight cursor-pointer hover:text-neutral-200 transition-colors line-clamp-2 md:line-clamp-none"
                 @click="goNovel(currentFeatured?.slug)">
@@ -157,13 +171,13 @@ onUnmounted(() => clearInterval(slideTimer))
               </div>
  
               <!-- Synopsis -->
-              <p class="mt-4 text-xs sm:text-sm text-neutral-300 line-clamp-2 sm:line-clamp-3 leading-relaxed max-w-2xl opacity-90">
+              <p class="mt-4 text-xs sm:text-sm text-neutral-300 line-clamp-2 sm:line-clamp-3 leading-relaxed max-w-2xl">
                 {{ currentFeatured?.synopsis }}
               </p>
  
               <!-- Author -->
-              <p class="mt-4 text-[12px] sm:text-xs text-neutral-500 font-medium tracking-wide">
-                by <span class="text-neutral-300">{{ currentFeatured?.author }}</span>
+              <p class="mt-4 text-[12px] sm:text-xs text-neutral-400 font-medium tracking-wide">
+                by <span class="text-neutral-200">{{ currentFeatured?.author }}</span>
               </p>
             </div>
           </div>
@@ -171,28 +185,30 @@ onUnmounted(() => clearInterval(slideTimer))
       </Transition>
 
       <!-- Carousel Controls (outside transition so they don't slide) -->
-      <div class="absolute bottom-4 right-4 md:bottom-6 md:right-8 z-20 flex flex-col items-end gap-2">
+      <div v-if="featuredNovels.length" class="absolute bottom-4 right-4 md:bottom-6 md:right-8 z-20 flex flex-col items-end gap-2">
         <div class="flex items-center gap-3">
-          <span class="text-xs font-bold text-neutral-500 tracking-wider">NO. {{ currentSlide + 1 }}</span>
-          <button @click.stop="prevSlide" class="p-1.5 rounded-full hover:bg-white/10 text-white transition" aria-label="Previous slide">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          <span class="text-xs font-bold text-neutral-400 tracking-wider">NO. {{ currentSlide + 1 }}</span>
+          <button @click.stop="prevSlide" class="p-2 rounded-full hover:bg-white/10 text-white transition min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Previous slide">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m15 18-6-6 6-6" />
             </svg>
           </button>
-          <button @click.stop="nextSlide" class="p-1.5 rounded-full hover:bg-white/10 text-white transition" aria-label="Next slide">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          <button @click.stop="nextSlide" class="p-2 rounded-full hover:bg-white/10 text-white transition min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Next slide">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m9 18 6-6-6-6" />
             </svg>
           </button>
         </div>
-        <div class="flex gap-1.5">
+        <div class="flex gap-2" role="tablist" aria-label="Carousel slides">
           <button v-for="(_, i) in featuredNovels" :key="i" @click="currentSlide = i; resetTimer()"
-            class="w-1.5 h-1.5 rounded-full transition-all"
-            :class="i === currentSlide ? 'bg-white w-4' : 'bg-white/30 hover:bg-white/50'"
+            class="rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
             :aria-label="'Go to slide ' + (i + 1)"
-            :aria-current="i === currentSlide ? 'true' : undefined" />
+            :aria-current="i === currentSlide ? 'true' : undefined"
+            role="tab">
+            <span class="block rounded-full transition-all" :class="i === currentSlide ? 'bg-white w-5 h-2.5' : 'bg-white/30 hover:bg-white/50 w-2.5 h-2.5'" />
+          </button>
         </div>
       </div>
     </section>
@@ -223,18 +239,18 @@ onUnmounted(() => clearInterval(slideTimer))
                   @mouseenter="novelStore.prefetchNovel(novel.slug)">
                   {{ novel.title }}
                 </h3>
-                <p class="text-[13px] font-medium text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
+                <p class="text-[13px] font-medium text-neutral-500 dark:text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
 
                 <div class="mt-3 space-y-1.5">
                   <div v-for="ch in novel.chapters" :key="ch.id"
                     class="flex items-center justify-between gap-3 text-xs">
                     <span
-                      class="truncate text-neutral-500 dark:text-neutral-400 cursor-pointer hover:text-black dark:hover:text-white transition-colors font-medium"
+                      class="truncate text-neutral-600 dark:text-neutral-400 cursor-pointer hover:text-black dark:hover:text-white transition-colors font-medium"
                       @click="goChapter(novel.slug, ch.chapter_number)"
                       @mouseenter="novelStore.prefetchChapter(novel.slug, ch.chapter_number)">
                       Ch.{{ ch.chapter_number }}<span class="mx-1.5 opacity-30 text-neutral-400">–</span>{{ ch.title }}
                     </span>
-                    <span class="text-neutral-400 dark:text-neutral-600 flex-shrink-0 text-[12px] font-mono">
+                    <span class="text-neutral-500 dark:text-neutral-500 flex-shrink-0 text-[12px] font-mono">
                       {{ timeAgo(ch.published_at) }}
                     </span>
                   </div>
@@ -262,10 +278,10 @@ onUnmounted(() => clearInterval(slideTimer))
               { key: 'monthly', label: 'Monthly' },
               { key: 'weekly', label: 'Weekly' }
             ]" :key="tab.key" @click="popularTab = tab.key"
-              class="flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition"
+              class="flex-1 px-3 py-2 text-xs font-medium rounded-md transition min-h-[44px] flex items-center justify-center"
               :class="popularTab === tab.key
                 ? 'bg-white dark:bg-neutral-800 shadow-sm text-black dark:text-white'
-                : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'">
+                : 'text-neutral-600 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'">
               {{ tab.label }}
             </button>
           </div>
@@ -276,13 +292,13 @@ onUnmounted(() => clearInterval(slideTimer))
               @mouseenter="novelStore.prefetchNovel(novel.slug)"
               class="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition">
               <span
-                class="text-base font-bold text-neutral-200 dark:text-neutral-800 w-5 text-center flex-shrink-0">
+                class="text-base font-bold text-neutral-300 dark:text-neutral-600 w-5 text-center flex-shrink-0">
                 {{ i + 1 }}
               </span>
               <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" :alt="novel.title + ' cover'" loading="lazy" width="36" height="52" />
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-medium truncate">{{ novel.title }}</h4>
-                <p class="text-[13px] text-neutral-400 truncate">{{ novel.author }}</p>
+                <h3 class="text-sm font-medium truncate">{{ novel.title }}</h3>
+                <p class="text-[13px] text-neutral-500 dark:text-neutral-400 truncate">{{ novel.author }}</p>
               </div>
             </div>
 

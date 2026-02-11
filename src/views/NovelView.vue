@@ -111,7 +111,7 @@ const goChapter = (num) =>
 
     <!-- ───── Banner ───── -->
     <div v-if="novel?.banner_url" class="absolute top-0 left-0 w-full h-[380px] z-0 overflow-hidden pointer-events-none fade-in">
-      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-40 dark:opacity-30 blur-[4px] transition-opacity duration-1000" style="object-position: center 25%" :alt="novel.title + ' banner'" />
+      <img :src="novel.banner_url" class="w-full h-full object-cover opacity-40 dark:opacity-30 blur-[4px] transition-opacity duration-1000" style="object-position: center 25%" :alt="novel.title + ' banner'" loading="eager" width="1280" height="380" />
       <div class="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent dark:from-neutral-950 dark:via-neutral-950/40 dark:to-transparent" />
     </div>
 
@@ -139,7 +139,8 @@ const goChapter = (num) =>
                    class="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" 
                    :class="{'opacity-0': !imageLoaded, 'opacity-100': imageLoaded}"
                    @load="imageLoaded = true"
-                   :alt="novel.title" />
+                   :alt="novel.title"
+                   width="176" height="264" />
               <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
               </div>
@@ -207,7 +208,7 @@ const goChapter = (num) =>
 
             <!-- Synopsis -->
             <section>
-              <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Synopsis</h2>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-3">Synopsis</h2>
               <div class="relative">
                 <div 
                   class="text-[17px] leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-line transition-all duration-500 ease-in-out overflow-hidden relative"
@@ -238,7 +239,7 @@ const goChapter = (num) =>
             <section id="chapters">
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-4">
-                  <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400">{{ chapterCount }} Chapters</h2>
+                  <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">{{ chapterCount }} Chapters</h2>
                   <!-- SUPERADMIN: Add Chapter -->
                   <router-link v-if="auth.isSuperAdmin" :to="`/admin/add-chapter/${novel.slug}`"
                     class="text-xs font-bold text-red-500 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded hover:bg-red-200 dark:hover:bg-red-800/40 transition">
@@ -262,11 +263,11 @@ const goChapter = (num) =>
                   @mouseenter="novelStore.prefetchChapter(novel.slug, ch.chapter_number)"
                   class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition text-sm group">
                   <div class="flex items-center gap-3 min-w-0">
-                    <span class="text-neutral-400 font-mono text-xs w-7 flex-shrink-0">{{ String(ch.chapter_number).padStart(2, '0') }}</span>
+                    <span class="text-neutral-500 dark:text-neutral-400 font-mono text-xs w-7 flex-shrink-0">{{ String(ch.chapter_number).padStart(2, '0') }}</span>
                     <span class="truncate font-medium text-neutral-700 dark:text-neutral-300 group-hover:text-neutral-900 dark:group-hover:text-white transition-colors">{{ ch.title }}</span>
                   </div>
                   <div class="flex items-center gap-3">
-                    <span class="text-[13px] text-neutral-400 flex-shrink-0">{{ formatDate(ch.published_at) }}</span>
+                    <span class="text-[13px] text-neutral-500 dark:text-neutral-400 flex-shrink-0">{{ formatDate(ch.published_at) }}</span>
                     <!-- SUPERADMIN: Edit Chapter (small icon) -->
                     <button v-if="auth.isSuperAdmin" @click.stop="router.push(`/admin/edit-chapter/${ch.id}`)" class="text-neutral-400 hover:text-red-500 p-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
@@ -274,7 +275,7 @@ const goChapter = (num) =>
                   </div>
                 </div>
 
-                <p v-if="!sortedChapters.length" class="text-sm text-neutral-400 text-center py-12">
+                <p v-if="!sortedChapters.length" class="text-sm text-neutral-500 dark:text-neutral-400 text-center py-12">
                   No chapters have been released yet.
                 </p>
               </div>
@@ -287,33 +288,33 @@ const goChapter = (num) =>
           <!-- Sidebar -->
           <aside class="space-y-6">
             <div class="sticky top-20">
-              <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-4">Details</h2>
+              <h2 class="text-sm font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-4">Details</h2>
 
               <dl class="space-y-3 text-sm">
                 <div class="flex justify-between">
-                  <dt class="text-neutral-500">Type</dt>
+                  <dt class="text-neutral-600 dark:text-neutral-500">Type</dt>
                   <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ novel.type || 'Light Novel' }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-neutral-500">Status</dt>
+                  <dt class="text-neutral-600 dark:text-neutral-500">Status</dt>
                   <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ novel.status || 'Ongoing' }}</dd>
                 </div>
                 <div v-if="novel.serialization" class="flex justify-between">
-                  <dt class="text-neutral-500">Serialization</dt>
+                  <dt class="text-neutral-600 dark:text-neutral-500">Serialization</dt>
                   <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ novel.serialization }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-neutral-500">Updated</dt>
+                  <dt class="text-neutral-600 dark:text-neutral-500">Updated</dt>
                   <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ formatDate(novel.updated_at) }}</dd>
                 </div>
                 <div class="flex justify-between">
-                  <dt class="text-neutral-500">Views</dt>
+                  <dt class="text-neutral-600 dark:text-neutral-500">Views</dt>
                   <dd class="font-medium text-neutral-800 dark:text-neutral-200">{{ totalViews.toLocaleString() }}</dd>
                 </div>
               </dl>
 
               <div v-if="novel.alternative_titles && novel.alternative_titles.length" class="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">Alternative Titles</h3>
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-2">Alternative Titles</h3>
                 <ul class="space-y-1">
                   <li v-for="title in novel.alternative_titles" :key="title" class="text-xs text-neutral-500 leading-snug">{{ title }}</li>
                 </ul>

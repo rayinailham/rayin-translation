@@ -138,6 +138,7 @@ export const useNovelStore = defineStore('novel', () => {
         novels,
         isLoading,
         fetchNovel,
+        prefetchNovel,
         getNovel,
         injectNovel
     }

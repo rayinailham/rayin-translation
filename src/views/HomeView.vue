@@ -13,6 +13,9 @@ import { useHomeStore } from '../stores/home'
 const router = useRouter()
 const auth = useAuthStore()
 const homeStore = useHomeStore()
+// Use novel store here to trigger prefetch
+import { useNovelStore } from '../stores/novel'
+const novelStore = useNovelStore()
 
 // ── Carousel ──
 const currentSlide = ref(0)
@@ -129,7 +132,9 @@ onUnmounted(() => clearInterval(slideTimer))
           <div
             class="relative z-10 max-w-7xl mx-auto px-6 h-full flex flex-col sm:flex-row gap-6 sm:gap-10 items-center justify-center pt-8 sm:pt-0">
             <!-- Cover -->
-            <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105" @click="goNovel(currentFeatured?.slug)">
+            <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105" 
+                 @click="goNovel(currentFeatured?.slug)"
+                 @mouseenter="novelStore.prefetchNovel(currentFeatured?.slug)">
               <img :src="currentFeatured?.image_url" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
                 :alt="currentFeatured?.title + ' cover'" width="192" height="288" />
             </div>
@@ -204,7 +209,8 @@ onUnmounted(() => clearInterval(slideTimer))
             <div v-for="novel in latestNovels" :key="novel.id"
               class="group relative flex gap-5 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/40 border border-neutral-100 dark:border-neutral-800/50 hover:border-black dark:hover:border-white transition-all duration-300 hover:shadow-xl hover:shadow-black/5">
               <!-- Cover -->
-              <div class="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
+              <div class="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 overflow-hidden rounded-xl shadow-lg"
+                 @mouseenter="novelStore.prefetchNovel(novel.slug)">
                 <img :src="novel.image_url"
                   class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
                   @click.stop="openPreview(novel)" :alt="novel.title + ' cover'" loading="lazy" width="96" height="128" />
@@ -213,7 +219,8 @@ onUnmounted(() => clearInterval(slideTimer))
               <!-- Info -->
               <div class="flex-1 min-w-0 flex flex-col justify-center">
                 <h3 class="text-[17px] font-bold truncate cursor-pointer hover:text-black dark:hover:text-white transition-colors"
-                  @click="goNovel(novel.slug)">
+                  @click="goNovel(novel.slug)"
+                  @mouseenter="novelStore.prefetchNovel(novel.slug)">
                   {{ novel.title }}
                 </h3>
                 <p class="text-[13px] font-medium text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
@@ -265,6 +272,7 @@ onUnmounted(() => clearInterval(slideTimer))
           <!-- List -->
           <div class="space-y-1">
             <div v-for="(novel, i) in currentPopular" :key="novel.id" @click="goNovel(novel.slug)"
+              @mouseenter="novelStore.prefetchNovel(novel.slug)"
               class="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition">
               <span
                 class="text-base font-bold text-neutral-200 dark:text-neutral-800 w-5 text-center flex-shrink-0">

@@ -1,9 +1,9 @@
-
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import { logger } from '../utils/logger'
+import { getOptimizedImageUrl } from '../utils/image'
 
 const props = defineProps(['excludeNovelId'])
 const router = useRouter()
@@ -30,30 +30,25 @@ async function fetchRecommendations() {
 
 onMounted(fetchRecommendations)
 watch(() => props.excludeNovelId, fetchRecommendations)
-
-const goNovel = (slug) => {
-    logger.novel('Recommendation Clicked', { slug })
-    router.push({ name: 'novel', params: { slug } })
-}
 </script>
 
 <template>
   <div class="mt-12 pt-8 md:mt-20 md:pt-12 border-t border-neutral-100 dark:border-neutral-800">
       <h3 class="text-lg md:text-xl font-bold tracking-tight mb-6 md:mb-8 text-center text-neutral-800 dark:text-neutral-200">You Might Also Like</h3>
       
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
-          <div 
+      <div v-if="novels.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+          <router-link 
             v-for="novel in novels" 
             :key="novel.id"
-            @click="goNovel(novel.slug)"
-            class="group cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/20 p-2 sm:p-4 rounded-xl transition"
+            :to="{ name: 'novel', params: { slug: novel.slug } }"
+            class="group cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/20 p-2 sm:p-4 rounded-xl transition block"
           >
               <div class="aspect-[2/3] bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden mb-3 md:mb-4 shadow-sm group-hover:shadow-md transition">
-                  <img :src="novel.image_url" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" :alt="novel.title + ' cover'" loading="lazy" width="200" height="300" />
+                  <img :src="getOptimizedImageUrl(novel.image_url, { width: 400, quality: 80, format: 'webp' })" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" :alt="novel.title + ' cover'" loading="lazy" width="200" height="300" />
               </div>
               <h4 class="font-bold text-sm md:text-base line-clamp-2 mb-1 group-hover:underline decoration-1 underline-offset-4 text-neutral-800 dark:text-neutral-100">{{ novel.title }}</h4>
               <p class="text-[13px] md:text-xs text-neutral-500">{{ novel.author }}</p>
-          </div>
+          </router-link>
       </div>
   </div>
 </template>

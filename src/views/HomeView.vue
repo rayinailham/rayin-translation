@@ -14,7 +14,9 @@ const router = useRouter()
 const auth = useAuthStore()
 const homeStore = useHomeStore()
 // Use novel store here to trigger prefetch
+// Use novel store here to trigger prefetch
 import { useNovelStore } from '../stores/novel'
+import { getOptimizedImageUrl } from '../utils/image'
 const novelStore = useNovelStore()
 
 // ── Carousel ──
@@ -138,7 +140,8 @@ onUnmounted(() => clearInterval(slideTimer))
         <div v-if="featuredNovels.length" :key="currentSlide" class="absolute inset-0">
           <!-- Background -->
           <div class="absolute inset-0">
-            <img v-if="currentFeatured?.banner_url" :src="currentFeatured.banner_url"
+            <img v-if="currentFeatured?.banner_url" 
+              :src="getOptimizedImageUrl(currentFeatured.banner_url, { width: 1280, quality: 60, format: 'webp', resize: 'cover' })"
               class="w-full h-full object-cover opacity-50 blur-[3px] scale-110" style="object-position: center 25%" :alt="currentFeatured?.title + ' banner'" fetchpriority="high" />
             <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black sm:bg-gradient-to-r sm:from-black/90 sm:via-black/70 sm:to-black/30" />
           </div>
@@ -150,17 +153,18 @@ onUnmounted(() => clearInterval(slideTimer))
             <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105" 
                  @click="goNovel(currentFeatured?.slug)"
                  @mouseenter="novelStore.prefetchNovel(currentFeatured?.slug)">
-              <img :src="currentFeatured?.image_url" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
+              <img :src="getOptimizedImageUrl(currentFeatured.image_url, { width: 400, quality: 80, format: 'webp' })" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
                 :alt="currentFeatured?.title + ' cover'" width="192" height="288" loading="eager" decoding="async" />
             </div>
  
             <!-- Info -->
             <div class="flex-1 text-white text-center sm:text-left min-w-0 pb-12 sm:pb-0">
               <p class="text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.2em] text-neutral-300 mb-2">Featured Novel</p>
-              <h2
-                class="text-xl sm:text-2xl md:text-3xl font-black leading-tight cursor-pointer hover:text-neutral-200 transition-colors line-clamp-2 md:line-clamp-none"
-                @click="goNovel(currentFeatured?.slug)">
-                {{ currentFeatured?.title }}
+              <h2 class="text-xl sm:text-2xl md:text-3xl font-black leading-tight line-clamp-2 md:line-clamp-none">
+                <router-link :to="{ name: 'novel', params: { slug: currentFeatured?.slug } }" 
+                  class="hover:text-neutral-200 transition-colors block">
+                  {{ currentFeatured?.title }}
+                </router-link>
               </h2>
               
               <!-- Genres -->
@@ -228,29 +232,30 @@ onUnmounted(() => clearInterval(slideTimer))
               <!-- Cover -->
               <div class="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 overflow-hidden rounded-xl shadow-lg"
                  @mouseenter="novelStore.prefetchNovel(novel.slug)">
-                <img :src="novel.image_url"
+                <img :src="getOptimizedImageUrl(novel.image_url, { width: 200, quality: 80, format: 'webp' })"
                   class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
                   @click.stop="openPreview(novel)" :alt="novel.title + ' cover'" loading="lazy" decoding="async" width="96" height="128" />
                 <div class="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/10 rounded-xl pointer-events-none" />
               </div>
               <!-- Info -->
               <div class="flex-1 min-w-0 flex flex-col justify-center">
-                <h3 class="text-[17px] font-bold truncate cursor-pointer hover:text-black dark:hover:text-white transition-colors"
-                  @click="goNovel(novel.slug)"
+                <h3 class="text-[17px] font-bold truncate transition-colors"
                   @mouseenter="novelStore.prefetchNovel(novel.slug)">
-                  {{ novel.title }}
+                  <router-link :to="{ name: 'novel', params: { slug: novel.slug } }" class="hover:text-black dark:hover:text-white block truncate">
+                    {{ novel.title }}
+                  </router-link>
                 </h3>
                 <p class="text-[13px] font-medium text-neutral-500 dark:text-neutral-400 mt-0.5 tracking-wide">{{ novel.author }}</p>
 
                 <div class="mt-3 space-y-1.5">
                   <div v-for="ch in novel.chapters" :key="ch.id"
                     class="flex items-center justify-between gap-3 text-xs">
-                    <span
-                      class="truncate text-neutral-600 dark:text-neutral-400 cursor-pointer hover:text-black dark:hover:text-white transition-colors font-medium"
-                      @click="goChapter(novel.slug, ch.chapter_number)"
+                    <router-link
+                      :to="{ name: 'chapter', params: { slug: novel.slug, chapter: ch.chapter_number } }"
+                      class="truncate text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors font-medium block"
                       @mouseenter="novelStore.prefetchChapter(novel.slug, ch.chapter_number)">
                       Ch.{{ ch.chapter_number }}<span class="mx-1.5 opacity-30 text-neutral-400">–</span>{{ ch.title }}
-                    </span>
+                    </router-link>
                     <span class="text-neutral-500 dark:text-neutral-500 flex-shrink-0 text-[12px] font-mono">
                       {{ timeAgo(ch.published_at) }}
                     </span>
@@ -301,19 +306,20 @@ onUnmounted(() => clearInterval(slideTimer))
 
           <!-- List -->
           <div class="space-y-1">
-            <div v-for="(novel, i) in currentPopular" :key="novel.id" @click="goNovel(novel.slug)"
+            <router-link v-for="(novel, i) in currentPopular" :key="novel.id" 
+              :to="{ name: 'novel', params: { slug: novel.slug } }"
               @mouseenter="novelStore.prefetchNovel(novel.slug)"
-              class="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition">
+              class="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition block">
               <span
                 class="text-base font-bold text-neutral-300 dark:text-neutral-600 w-5 text-center flex-shrink-0">
                 {{ i + 1 }}
               </span>
-              <img :src="novel.image_url" class="w-9 h-[52px] object-cover rounded flex-shrink-0" :alt="novel.title + ' cover'" loading="lazy" decoding="async" width="36" height="52" />
+              <img :src="getOptimizedImageUrl(novel.image_url, { width: 100, quality: 80, format: 'webp' })" class="w-9 h-[52px] object-cover rounded flex-shrink-0" :alt="novel.title + ' cover'" loading="lazy" decoding="async" width="36" height="52" />
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-medium truncate">{{ novel.title }}</h3>
                 <p class="text-[13px] text-neutral-500 dark:text-neutral-400 truncate">{{ novel.author }}</p>
               </div>
-            </div>
+            </router-link>
 
             <p v-if="!currentPopular.length" class="text-xs text-neutral-400 text-center py-8">No data yet.</p>
           </div>
@@ -354,7 +360,7 @@ onUnmounted(() => clearInterval(slideTimer))
           >
             <div class="relative max-w-full max-h-full">
               <img 
-                :src="previewNovel.image_url" 
+                :src="getOptimizedImageUrl(previewNovel.image_url, { width: 800, quality: 90, format: 'webp' })" 
                 class="max-w-full max-h-[85vh] h-auto w-auto rounded-lg shadow-2xl object-contain ring-1 ring-white/10" 
                 :alt="previewNovel.title" 
                 @click.stop

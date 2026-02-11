@@ -52,9 +52,9 @@ const onChapterChange = (e) => {
     <div class="flex items-center gap-1.5 md:gap-3 h-11 md:h-12">
       
       <!-- Previous Button -->
-      <button 
+      <router-link 
         v-if="prevChapter" 
-        @click="goChapter(prevChapter.chapter_number)"
+        :to="{ name: 'chapter', params: { slug: props.novelSlug, chapter: prevChapter.chapter_number } }"
         @mouseenter="prefetchChapter(prevChapter.chapter_number)"
         class="flex-none flex items-center justify-center w-11 md:w-auto md:px-4 h-full rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all group"
         title="Previous Chapter"
@@ -63,7 +63,7 @@ const onChapterChange = (e) => {
           <path d="m15 18-6-6 6-6"/>
         </svg>
         <span class="hidden md:inline text-xs font-black uppercase tracking-widest">Prev</span>
-      </button>
+      </router-link>
       <div v-else class="flex-none w-11 md:w-28 h-full rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800 flex items-center justify-center opacity-30 select-none">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m15 18-6-6 6-6"/>
@@ -81,6 +81,7 @@ const onChapterChange = (e) => {
         <select 
           :value="chapterNumber"
           @change="onChapterChange"
+          aria-label="Select chapter"
           class="w-full h-full pl-10 pr-10 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-center text-[13px] md:text-sm font-bold text-neutral-700 dark:text-neutral-200 appearance-none cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all outline-none"
         >
           <option v-for="ch in allChapters" :key="ch.id" :value="ch.chapter_number" class="bg-white dark:bg-neutral-900 text-black dark:text-white">
@@ -96,9 +97,9 @@ const onChapterChange = (e) => {
       </div>
 
       <!-- Next Button -->
-      <button 
+      <router-link 
         v-if="nextChapter" 
-        @click="goChapter(nextChapter.chapter_number)"
+        :to="{ name: 'chapter', params: { slug: props.novelSlug, chapter: nextChapter.chapter_number } }"
         @mouseenter="prefetchChapter(nextChapter.chapter_number)"
         class="flex-none flex items-center justify-center w-11 md:w-auto md:px-4 h-full rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-black border border-transparent hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-black/5"
         title="Next Chapter"
@@ -107,7 +108,7 @@ const onChapterChange = (e) => {
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="md:ml-1.5">
           <path d="m9 18 6-6-6-6"/>
         </svg>
-      </button>
+      </router-link>
       <div v-else class="flex-none w-11 md:w-28 h-full rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800 flex items-center justify-center opacity-30 select-none">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m9 18 6-6-6-6"/>

@@ -1,8 +1,8 @@
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import AuthModal from './AuthModal.vue'
+const AuthModal = defineAsyncComponent(() => import('./AuthModal.vue'))
 
 const auth = useAuthStore()
 const isAuthModalOpen = ref(false)

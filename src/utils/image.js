@@ -16,11 +16,11 @@ export function getOptimizedImageUrl(url, options = {}) {
   if (typeof url !== 'string') return '';
   
   // Check if it's a Supabase Storage URL
-  if (!url.includes('supabase.co/storage/v1/object/public')) return url;
+  // We look for the pattern /storage/v1/object/public/ and replace it with /storage/v1/render/image/public/
+  if (!url.match(/\/storage\/v1\/object\/public\//)) return url;
 
-  // Supabase Storage v1 Transformation
   // Transform /object/public/ -> /render/image/public/
-  let newUrl = url.replace('/object/public/', '/render/image/public/');
+  let newUrl = url.replace(/\/storage\/v1\/object\/public\//, '/storage/v1/render/image/public/');
 
   const params = [];
   

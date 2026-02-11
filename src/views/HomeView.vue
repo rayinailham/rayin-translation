@@ -141,6 +141,10 @@ onUnmounted(() => clearInterval(slideTimer))
           <!-- Background -->
           <div class="absolute inset-0">
             <img v-if="currentFeatured?.banner_url" 
+              :srcset="`${getOptimizedImageUrl(currentFeatured.banner_url, { width: 640, quality: 60, format: 'webp', resize: 'cover' })} 640w,
+                        ${getOptimizedImageUrl(currentFeatured.banner_url, { width: 1024, quality: 60, format: 'webp', resize: 'cover' })} 1024w,
+                        ${getOptimizedImageUrl(currentFeatured.banner_url, { width: 1280, quality: 60, format: 'webp', resize: 'cover' })} 1280w`"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 100vw"
               :src="getOptimizedImageUrl(currentFeatured.banner_url, { width: 1280, quality: 60, format: 'webp', resize: 'cover' })"
               class="w-full h-full object-cover opacity-50 blur-[3px] scale-110" style="object-position: center 25%" :alt="currentFeatured?.title + ' banner'" fetchpriority="high" />
             <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black sm:bg-gradient-to-r sm:from-black/90 sm:via-black/70 sm:to-black/30" />
@@ -150,12 +154,15 @@ onUnmounted(() => clearInterval(slideTimer))
           <div
             class="relative z-10 max-w-7xl mx-auto px-6 h-full flex flex-col sm:flex-row gap-6 sm:gap-10 items-center justify-center pt-8 sm:pt-0">
             <!-- Cover -->
-            <div class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105" 
-                 @click="goNovel(currentFeatured?.slug)"
+            <router-link :to="{ name: 'novel', params: { slug: currentFeatured?.slug } }"
+                 class="w-32 sm:w-40 md:w-48 flex-shrink-0 cursor-pointer shadow-2xl transform transition hover:scale-105 block" 
                  @mouseenter="novelStore.prefetchNovel(currentFeatured?.slug)">
-              <img :src="getOptimizedImageUrl(currentFeatured.image_url, { width: 400, quality: 80, format: 'webp' })" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
+              <img :srcset="`${getOptimizedImageUrl(currentFeatured.image_url, { width: 200, quality: 80, format: 'webp' })} 200w,
+                             ${getOptimizedImageUrl(currentFeatured.image_url, { width: 400, quality: 80, format: 'webp' })} 400w`"
+                   sizes="(max-width: 640px) 128px, 192px"
+                   :src="getOptimizedImageUrl(currentFeatured.image_url, { width: 400, quality: 80, format: 'webp' })" class="w-full aspect-[2/3] object-cover rounded-lg ring-1 ring-white/10"
                 :alt="currentFeatured?.title + ' cover'" width="192" height="288" loading="eager" decoding="async" />
-            </div>
+            </router-link>
  
             <!-- Info -->
             <div class="flex-1 text-white text-center sm:text-left min-w-0 pb-12 sm:pb-0">
@@ -232,7 +239,10 @@ onUnmounted(() => clearInterval(slideTimer))
               <!-- Cover -->
               <div class="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 overflow-hidden rounded-xl shadow-lg"
                  @mouseenter="novelStore.prefetchNovel(novel.slug)">
-                <img :src="getOptimizedImageUrl(novel.image_url, { width: 200, quality: 80, format: 'webp' })"
+                <img :srcset="`${getOptimizedImageUrl(novel.image_url, { width: 100, quality: 80, format: 'webp' })} 100w,
+                               ${getOptimizedImageUrl(novel.image_url, { width: 200, quality: 80, format: 'webp' })} 200w`"
+                     sizes="(max-width: 640px) 80px, 96px"
+                     :src="getOptimizedImageUrl(novel.image_url, { width: 200, quality: 80, format: 'webp' })"
                   class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
                   @click.stop="openPreview(novel)" :alt="novel.title + ' cover'" loading="lazy" decoding="async" width="96" height="128" />
                 <div class="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/10 rounded-xl pointer-events-none" />

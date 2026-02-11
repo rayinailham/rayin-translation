@@ -37,7 +37,7 @@ export function useAdminChapter() {
         try {
             const { data, error } = await supabase
                 .from('novels')
-                .select('id, title, slug, synopsis')
+                .select('id, title, slug, synopsis, story_context')
                 .order('title')
             
             if (error) throw error
@@ -68,7 +68,7 @@ export function useAdminChapter() {
         try {
             const { data, error } = await supabase
                 .from('novels')
-                .select('id, title, slug, synopsis')
+                .select('id, title, slug, synopsis, story_context')
                 .eq('slug', slug)
                 .maybeSingle()
 
@@ -106,7 +106,7 @@ export function useAdminChapter() {
                 if (!novel.value || novel.value.id !== data.novel_id) {
                     const { data: n } = await supabase
                         .from('novels')
-                        .select('id, title, slug, synopsis')
+                        .select('id, title, slug, synopsis, story_context')
                         .eq('id', data.novel_id)
                         .maybeSingle()
                     

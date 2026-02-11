@@ -143,10 +143,52 @@ async function handleNovelChange(event) {
     await _handleNovelChange(event, loadPresets)
 }
 
-function insertSynopsis() {
-    if (novel.value?.synopsis) {
-        translationNote.value = (translationNote.value ? translationNote.value + '\n\n' : '') + `Synopsis:\n${novel.value.synopsis}`
+async function insertContext() {
+    const contextContent = novel.value?.story_context || (novel.value?.synopsis ? `Synopsis:\n${novel.value.synopsis}` : '')
+    
+    if (contextContent) {
+        translationNote.value = (translationNote.value ? translationNote.value + '\n\n' : '') + contextContent
         showContext.value = true
+    }
+}
+
+async function insertLastChapter() {
+    if (!chaptersList.value?.length) return
+
+    // chaptersList is ordered DESC (highest chapter number first)
+    // Find current chapter index
+    const currentIndex = chaptersList.value.findIndex(ch => ch.id === form.value.id)
+    
+    let targetChapter = null
+    
+    if (currentIndex === -1) {
+        // If "New" chapter (not in list), take the latest one (index 0)
+        targetChapter = chaptersList.value[0]
+    } else if (currentIndex < chaptersList.value.length - 1) {
+        // If existing chapter, take the next one in list (which is older/previous chapter)
+        targetChapter = chaptersList.value[currentIndex + 1]
+    }
+
+    if (targetChapter) {
+        try {
+             // We need to fetch content since list only has minimal data
+             const { data, error } = await supabase
+                 .from('chapters')
+                 .select('content')
+                 .eq('id', targetChapter.id)
+                 .single()
+             
+             if (error) throw error
+             if (data?.content) {
+                 translationNote.value = (translationNote.value ? translationNote.value + '\n\n' : '') + `*** Previous Chapter Content ***\n${data.content}`
+                 showContext.value = true
+             }
+        } catch (err) {
+            logger.error('Failed to load last chapter content', err)
+            errorMsg.value = 'Failed to load last chapter content'
+        }
+    } else {
+        errorMsg.value = 'No previous chapter found'
     }
 }
 
@@ -341,7 +383,8 @@ watch(() => route.params.slug, async (newSlug) => {
                          <span v-if="translationNote" class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                      </span>
                      <div class="flex items-center gap-2">
-                         <span v-if="novel?.synopsis" @click.stop="insertSynopsis" class="text-[9px] text-blue-500 hover:text-blue-600 font-medium normal-case tracking-normal">+Synopsis</span>
+                         <span v-if="novel?.story_context || novel?.synopsis" @click.stop="insertContext" class="text-[9px] text-blue-500 hover:text-blue-600 font-medium normal-case tracking-normal cursor-pointer">+Context</span>
+                         <span v-if="chaptersList?.length > 0" @click.stop="insertLastChapter" class="text-[9px] text-blue-500 hover:text-blue-600 font-medium normal-case tracking-normal cursor-pointer">+Last Chapter</span>
                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{'rotate-180': showContext}" class="transition-transform"><path d="m6 9 6 6 6-6"/></svg>
                      </div>
                  </button>

@@ -230,7 +230,8 @@ onUnmounted(() => clearInterval(slideTimer))
                     class="flex items-center justify-between gap-3 text-xs">
                     <span
                       class="truncate text-neutral-500 dark:text-neutral-400 cursor-pointer hover:text-black dark:hover:text-white transition-colors font-medium"
-                      @click="goChapter(novel.slug, ch.chapter_number)">
+                      @click="goChapter(novel.slug, ch.chapter_number)"
+                      @mouseenter="novelStore.prefetchChapter(novel.slug, ch.chapter_number)">
                       Ch.{{ ch.chapter_number }}<span class="mx-1.5 opacity-30 text-neutral-400">–</span>{{ ch.title }}
                     </span>
                     <span class="text-neutral-400 dark:text-neutral-600 flex-shrink-0 text-[12px] font-mono">

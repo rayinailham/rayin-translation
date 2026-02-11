@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabase'
 import ChapterSidebar from '../components/ChapterSidebar.vue'
+import ChapterNavigation from '../components/ChapterNavigation.vue'
 import NovelRecommendations from '../components/NovelRecommendations.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import { marked } from 'marked'
@@ -13,6 +14,8 @@ import { logger } from '../utils/logger'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+import { useNovelStore } from '../stores/novel'
+const novelStore = useNovelStore()
 
 const novel = ref(null)
 const chapter = ref(null)
@@ -27,21 +30,6 @@ const fontFamily = ref(localStorage.getItem('readerFontFamily') || 'Poppins, san
 watch(fontSize, (v) => localStorage.setItem('readerFontSize', v))
 watch(fontFamily, (v) => localStorage.setItem('readerFontFamily', v))
 
-// ── Prev / Next ──
-const currentIdx = computed(() =>
-  allChapters.value.findIndex(c => c.chapter_number == chapter.value?.chapter_number)
-)
-
-const prevChapter = computed(() =>
-  currentIdx.value > 0 ? allChapters.value[currentIdx.value - 1] : null
-)
-
-const nextChapter = computed(() =>
-  currentIdx.value >= 0 && currentIdx.value < allChapters.value.length - 1
-    ? allChapters.value[currentIdx.value + 1]
-    : null
-)
-
 // ── Render Markdown ──
 const renderedContent = computed(() => {
   if (!chapter.value?.content) return ''
@@ -50,57 +38,48 @@ const renderedContent = computed(() => {
 })
 
 // ── Data Fetching ──
+// ── Data Fetching ──
 async function fetchData() {
   const slug = route.params.slug
   const chapterNum = route.params.chapter
 
-  logger.fetch('Chapter Data Start', { slug, chapterNum })
-
-  const { data: novelData } = await supabase
-    .from('novels')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle()
-
-  if (novelData) {
-    novel.value = novelData
-
-    const { data: chaptersData } = await supabase
-      .from('chapters')
-      .select('id, chapter_number, title')
-      .eq('novel_id', novelData.id)
-      .order('chapter_number', { ascending: true })
-
-    if (chaptersData) allChapters.value = chaptersData
-
-    const { data: chapterData } = await supabase
-      .from('chapters')
-      .select('*')
-      .eq('novel_id', novelData.id)
-      .eq('chapter_number', chapterNum)
-      .maybeSingle()
-
-    if (chapterData) {
-      chapter.value = chapterData
-      logger.fetch('Chapter Loaded', { title: chapterData.title, id: chapterData.id })
-      
-      // Increment view count
-      supabase.from('chapters')
-        .update({ views: (chapterData.views || 0) + 1 })
-        .eq('id', chapterData.id)
-        .then(() => {
-            logger.chapter('View Count Incremented', { id: chapterData.id })
-        }) // Fire and forget
-    } else {
-        logger.error('Chapter Not Found', { slug, chapterNum })
-    }
+  // 1. Check Cache for Immediate Display
+  const cachedNovel = novelStore.getNovel(slug)
+  const cachedChapter = novelStore.getChapter(slug, chapterNum)
+  
+  if (cachedNovel && cachedChapter) {
+      novel.value = cachedNovel
+      allChapters.value = cachedNovel.chapters || []
+      chapter.value = cachedChapter
+      loaded.value = true
   } else {
-      logger.error('Novel Not Found', { slug })
+      loaded.value = false
   }
 
-  loaded.value = true
+  // 2. Fetch Fresh Data (Background)
+  // We need novel info first (for ID and chapter list)
+  const novelData = await novelStore.fetchNovel(slug)
+  if (novelData) {
+      novel.value = novelData
+      allChapters.value = novelData.chapters || []
+      
+      // Then fetch specific chapter content
+      const chapterData = await novelStore.fetchChapter(slug, chapterNum)
+      if (chapterData) {
+          chapter.value = chapterData
+          loaded.value = true
+      }
+  }
+
   await nextTick()
-  window.scrollTo({ top: 0, behavior: 'instant' })
+  if (!loaded.value) {
+     // If we failed to load anything
+     logger.error('Failed to load chapter data', { slug, chapterNum })
+  } else {
+      // Only scroll if we didn't just restore from cache (or maybe always consistent behavior?)
+      // Actually consistent behavior is to scroll top on new chapter
+      window.scrollTo({ top: 0, behavior: 'instant' })
+  }
 }
 
 onMounted(fetchData)
@@ -136,61 +115,40 @@ const goChapter = (num) =>
 
     <template v-if="chapter">
 
+      <!-- ───── Top Navigation ───── -->
+      <div class="pt-8 max-w-3xl mx-auto">
+        <ChapterNavigation 
+          :novelSlug="route.params.slug" 
+          :chapterNumber="chapter.chapter_number" 
+          :allChapters="allChapters" 
+        />
+      </div>
+
       <!-- ───── Chapter Content ───── -->
-      <article class="max-w-3xl mx-auto px-4 py-10 md:py-14">
-        <div class="mb-10">
-          <h1 class="text-lg md:text-xl font-bold">Chapter {{ chapter.chapter_number }}</h1>
-          <p class="text-neutral-500 text-sm mt-1">{{ chapter.title }}</p>
+      <article class="max-w-3xl mx-auto px-4 py-8 md:py-12">
+        <div class="mb-10 text-center">
+          <h1 class="text-2xl md:text-3xl font-black mb-2">{{ chapter.title }}</h1>
+          <p class="text-neutral-500 font-medium">Chapter {{ chapter.chapter_number }}</p>
         </div>
 
-        <div class="prose dark:prose-invert max-w-none prose-neutral prose-sm md:prose-base
-                     prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
-          :style="{ fontSize: fontSize + 'px', fontFamily, lineHeight: '1.9' }" v-html="renderedContent" />
+        <div class="prose dark:prose-invert max-w-none prose-neutral prose-lg md:prose-xl
+                     prose-p:my-6 prose-p:leading-relaxed prose-headings:font-bold prose-headings:mt-10 prose-headings:mb-6"
+          :style="{ fontSize: fontSize + 'px', fontFamily }" v-html="renderedContent" />
       </article>
 
       <!-- ───── Bottom Navigation ───── -->
-      <nav class="max-w-3xl mx-auto px-4 pb-6">
-        <div class="flex gap-2">
-
-          <!-- Prev -->
-          <button v-if="prevChapter" @click="goChapter(prevChapter.chapter_number)"
-            class="flex-1 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg text-left hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition min-w-0">
-            <span class="text-[12px] text-neutral-400 uppercase tracking-wider block">Previous</span>
-            <span class="text-sm font-medium truncate block mt-0.5">
-              Ch.{{ prevChapter.chapter_number }} – {{ prevChapter.title }}
-            </span>
-          </button>
-          <div v-else class="flex-1" />
-
-          <!-- TOC -->
-          <router-link :to="{ name: 'novel', params: { slug: route.params.slug } }"
-            class="px-5 flex items-center justify-center border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition flex-shrink-0"
-            title="Table of Contents">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" x2="21" y1="6" y2="6" />
-              <line x1="8" x2="21" y1="12" y2="12" />
-              <line x1="8" x2="21" y1="18" y2="18" />
-              <line x1="3" x2="3.01" y1="6" y2="6" />
-              <line x1="3" x2="3.01" y1="12" y2="12" />
-              <line x1="3" x2="3.01" y1="18" y2="18" />
-            </svg>
-          </router-link>
-
-          <!-- Next -->
-          <button v-if="nextChapter" @click="goChapter(nextChapter.chapter_number)"
-            class="flex-1 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg text-right hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition min-w-0">
-            <span class="text-[12px] text-neutral-400 uppercase tracking-wider block">Next</span>
-            <span class="text-sm font-medium truncate block mt-0.5">
-              Ch.{{ nextChapter.chapter_number }} – {{ nextChapter.title }}
-            </span>
-          </button>
-          <div v-else class="flex-1" />
-        </div>
-
+      <div class="pb-8">
+        <ChapterNavigation 
+          :novelSlug="route.params.slug" 
+          :chapterNumber="chapter.chapter_number" 
+          :allChapters="allChapters" 
+        />
+        
         <!-- Recommendations -->
-        <NovelRecommendations :excludeNovelId="novel?.id" />
-      </nav>
+        <div class="max-w-3xl mx-auto px-4 mt-8">
+            <NovelRecommendations :excludeNovelId="novel?.id" />
+        </div>
+      </div>
       </template>
 
     <!-- Not found -->

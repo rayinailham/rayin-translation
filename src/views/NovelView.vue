@@ -90,18 +90,15 @@ async function fetchData() {
 }
 
 onMounted(async () => {
+    // Always scroll to top immediately when mounting a new page
+    window.scrollTo(0, 0)
     await fetchData()
-    // Scroll to top only on mount/route change, not every small update
-    if (!loaded.value) { 
-        // if we waited for load, scroll now. if cached, we are already there.
-         window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
 })
 
 watch(() => route.params.slug, async () => {
     synopsisExpanded.value = false
+    window.scrollTo(0, 0)
     await fetchData()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
 })
 
 // ── Navigation ──
@@ -262,6 +259,7 @@ const goChapter = (num) =>
 
               <div class="border border-neutral-200 dark:border-neutral-800 rounded-lg divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden">
                 <div v-for="ch in displayChapters" :key="ch.id" @click="goChapter(ch.chapter_number)"
+                  @mouseenter="novelStore.prefetchChapter(novel.slug, ch.chapter_number)"
                   class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition text-sm group">
                   <div class="flex items-center gap-3 min-w-0">
                     <span class="text-neutral-400 font-mono text-xs w-7 flex-shrink-0">{{ String(ch.chapter_number).padStart(2, '0') }}</span>

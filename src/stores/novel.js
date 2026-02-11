@@ -6,49 +6,49 @@ import { logger } from '../utils/logger'
 export const useNovelStore = defineStore('novel', () => {
     // State: Map of slug -> novelData
     const novels = ref(new Map())
+    // Map of "slug/chapterNumber" -> chapterData (content)
+    const chapterContent = ref(new Map())
     const isLoading = ref(false)
     const prefetchedSlugs = new Set()
+    const prefetchedChapters = new Set()
 
     // Actions
     const prefetchNovel = async (slug) => {
         if (!slug) return
-        
-        // Prevent rapid duplicate prefetches (debounce/throttle logic)
         if (prefetchedSlugs.has(slug)) return
 
         const cached = novels.value.get(slug)
-        // Only prefetch if we don't have it, or it's partial/stale
         if (!cached || cached.isPartial || (Date.now() - cached.fetchedAt > 5 * 60 * 1000)) {
             prefetchedSlugs.add(slug)
-            
-            // Fire and forget, don't await, and don't trigger global isLoading spinner
-            // Clean up from set after delay to allow re-check later
             logger.fetch('Prefetching Novel', { slug })
             
-            // We use fetchNovel but we might want a silent mode? 
-            // fetchNovel already handles silent update if cached exists.
-            // But if cached doesn't exist, it sets isLoading=true.
-            // For hovering, we probably don't want to trigger global isLoading if we are on another page?
-            // Since isLoading is global to the store, and used by NovelView.
-            // If we are on HomeView, NovelView is not mounted, so its spinner won't show.
-            // So it is safe to call fetchNovel.
-            
             fetchNovel(slug).finally(() => {
-                setTimeout(() => prefetchedSlugs.delete(slug), 10000) // Cooldown 10s
+                setTimeout(() => prefetchedSlugs.delete(slug), 10000)
+            })
+        }
+    }
+
+    const prefetchChapter = async (slug, chapterNumber) => {
+        if (!slug || !chapterNumber) return
+        const key = `${slug}/${chapterNumber}`
+        if (prefetchedChapters.has(key)) return
+
+        const cached = chapterContent.value.get(key)
+        if (!cached || (Date.now() - cached.fetchedAt > 10 * 60 * 1000)) {
+            prefetchedChapters.add(key)
+            logger.fetch('Prefetching Chapter', { slug, chapterNumber })
+
+            fetchChapter(slug, chapterNumber).finally(() => {
+                setTimeout(() => prefetchedChapters.delete(key), 10000)
             })
         }
     }
 
     const fetchNovel = async (slug) => {
-        // If we have cached data for this slug, we are "ready" immediately
-        // but we can still trigger a background refresh if needed
-        // If we have ANY cached data for this slug, return it immediately to show UI
-        // We will trigger a background Fetch if it is stale or partial
+        // [Existing fetchNovel logic...]
         const cached = novels.value.get(slug)
         
-        // Return cached immediately if exists
         if (cached) {
-            // Check if we need to refresh in background
             const isPartial = cached.isPartial
             const isStale = (Date.now() - cached.fetchedAt > 5 * 60 * 1000)
             
@@ -56,19 +56,14 @@ export const useNovelStore = defineStore('novel', () => {
                 logger.fetch('Novel Data Fully Cached', { slug })
                 return cached
             }
-            
-            // If partial or stale, we continue to fetch below (background update)
-            // But we don't set global isLoading to true to avoid spinner if we have data
             logger.fetch('Novel Data Cached (Stale/Partial) - Background Refresh', { slug, isPartial })
         } else {
-            // Only show spinner if we have NOTHING
             isLoading.value = true
         }
 
         logger.fetch('Novel Fetch Start', { slug })
 
         try {
-            // Fetch Novel Details
             const { data: novelData, error: novelError } = await supabase
                 .from('novels')
                 .select('*')
@@ -76,12 +71,8 @@ export const useNovelStore = defineStore('novel', () => {
                 .maybeSingle()
 
             if (novelError) throw novelError
-            if (!novelData) {
-                // Determine if 404
-                return null
-            }
+            if (!novelData) return null
 
-            // Fetch Chapters
             const { data: chapterData, error: chapterError } = await supabase
                 .from('chapters')
                 .select('id, chapter_number, title, published_at, views')
@@ -97,21 +88,78 @@ export const useNovelStore = defineStore('novel', () => {
                 isPartial: false
             }
 
-            // Update Cache
             novels.value.set(slug, result)
             return result
 
         } catch (err) {
             console.error('Novel Fetch Error', err)
-            // If error, return cached version if available (stale data better than no data)
             return cached || null
         } finally {
             isLoading.value = false
         }
     }
 
+    const fetchChapter = async (slug, chapterNumber) => {
+        const key = `${slug}/${chapterNumber}`
+        const cached = chapterContent.value.get(key)
+        
+        // 1. Return cached if valid
+        const isStale = !cached || (Date.now() - cached.fetchedAt > 10 * 60 * 1000)
+        if (!isStale) {
+            logger.fetch('Chapter Cached', { key })
+            return cached
+        }
+
+        // 2. Fetch logic
+        // We ensure we have the novel info first (for ID)
+        // We can get it from cache or fetch it
+        let novelData = novels.value.get(slug)
+        if (!novelData || novelData.isPartial) {
+            // Need to ensure we have novel ID. Partial data usually has ID.
+            // If not in cache at all, we must fetch novel first.
+            if (!novelData) {
+                novelData = await fetchNovel(slug)
+                if (!novelData) return null
+            }
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('chapters')
+                .select('*')
+                .eq('novel_id', novelData.id)
+                .eq('chapter_number', chapterNumber)
+                .maybeSingle()
+            
+            if (error) throw error
+            if (data) {
+                const result = {
+                    ...data,
+                    fetchedAt: Date.now()
+                }
+                chapterContent.value.set(key, result)
+                
+                // Increment view count (fire & forget)
+                supabase.from('chapters')
+                    .update({ views: (data.views || 0) + 1 })
+                    .eq('id', data.id)
+                    .then(() => {}) // Silent catch
+
+                return result
+            }
+            return null
+        } catch (e) {
+            console.error('Chapter Fetch Error', e)
+            return null
+        }
+    }
+
     const getNovel = (slug) => {
         return novels.value.get(slug)
+    }
+
+    const getChapter = (slug, chapterNumber) => {
+        return chapterContent.value.get(`${slug}/${chapterNumber}`)
     }
 
     const injectNovel = (data) => {
@@ -136,10 +184,14 @@ export const useNovelStore = defineStore('novel', () => {
 
     return {
         novels,
+        chapterContent,
         isLoading,
         fetchNovel,
         prefetchNovel,
+        fetchChapter,
+        prefetchChapter,
         getNovel,
+        getChapter,
         injectNovel
     }
 })

@@ -21,6 +21,7 @@ const chapters = ref([])
 const loaded = ref(false)
 const showImagePreview = ref(false)
 const synopsisExpanded = ref(false)
+const imageLoaded = ref(false)
 
 // ── Computed ──
 const genres = computed(() => {
@@ -135,9 +136,13 @@ const goChapter = (num) =>
           <div class="w-36 sm:w-44 flex-shrink-0 mx-auto sm:mx-0">
             <div 
               @click="showImagePreview = true"
-              class="relative aspect-[2/3] rounded-lg overflow-hidden shadow-md cursor-zoom-in hover:opacity-95 transition-all group"
+              class="relative aspect-[2/3] rounded-lg overflow-hidden shadow-md cursor-zoom-in hover:opacity-95 transition-all group bg-neutral-200 dark:bg-neutral-800"
             >
-              <img :src="novel.image_url" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" :alt="novel.title" />
+              <img :src="novel.image_url" 
+                   class="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" 
+                   :class="{'opacity-0': !imageLoaded, 'opacity-100': imageLoaded}"
+                   @load="imageLoaded = true"
+                   :alt="novel.title" />
               <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
               </div>

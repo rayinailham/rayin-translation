@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase } from '../supabase'
 import { logger } from '../utils/logger'
+import { useNovelStore } from './novel'
 
 export const useHomeStore = defineStore('home', () => {
     // State
@@ -59,7 +60,12 @@ export const useHomeStore = defineStore('home', () => {
             .limit(10)
 
         if (error) throw error
-        if (data?.length) featuredNovels.value = data
+        if (data?.length) {
+            featuredNovels.value = data
+            // Populate cache
+            const novelStore = useNovelStore()
+            data.forEach(n => novelStore.injectNovel(n))
+        }
     }
 
     const fetchLatest = async () => {
@@ -79,6 +85,9 @@ export const useHomeStore = defineStore('home', () => {
                   .sort((a, b) => b.chapter_number - a.chapter_number)
                   .slice(0, 3)
             }))
+            // Populate cache
+            const novelStore = useNovelStore()
+            latestNovels.value.forEach(n => novelStore.injectNovel(n))
         }
     }
 
@@ -108,6 +117,15 @@ export const useHomeStore = defineStore('home', () => {
         if (allTimeRes.data) popularData.value.all = allTimeRes.data
         if (weeklyRes.data) popularData.value.weekly = weeklyRes.data
         if (monthlyRes.data) popularData.value.monthly = monthlyRes.data
+
+        // Populate cache
+        const novelStore = useNovelStore()
+        const allNovels = [
+            ...(allTimeRes.data || []),
+            ...(weeklyRes.data || []),
+            ...(monthlyRes.data || [])
+        ]
+        allNovels.forEach(n => novelStore.injectNovel(n))
     }
 
     return {

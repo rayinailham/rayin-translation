@@ -19,8 +19,10 @@ export function getOptimizedImageUrl(url, options = {}) {
   // We look for the pattern /storage/v1/object/public/ and replace it with /storage/v1/render/image/public/
   if (!url.match(/\/storage\/v1\/object\/public\//)) return url;
 
-  // Transform /object/public/ -> /render/image/public/
-  let newUrl = url.replace(/\/storage\/v1\/object\/public\//, '/storage/v1/render/image/public/');
+  // REVERT: transformation seems to be failing for the user (images not showing).
+  // We return the original URL for now to ensure images load, even if unoptimized.
+  // let newUrl = url.replace(/\/storage\/v1\/object\/public\//, '/storage/v1/render/image/public/');
+  let newUrl = url;
 
   const params = [];
   

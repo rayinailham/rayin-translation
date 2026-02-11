@@ -23,9 +23,10 @@ export const useAuthStore = defineStore('auth', () => {
           
           if (session?.user) {
               // Avoid duplicate profile fetches if user is already set and consistent
-              if (user.value?.id !== session.user.id) {
+              // But ensure we fetch if we don't have the profile yet (e.g. page reload race condition)
+              if (user.value?.id !== session.user.id || !userProfile.value) {
                   user.value = session.user
-                  logger.system('Session Start', { userId: user.value.id })
+                  logger.system('Session Start/Resume', { userId: user.value.id })
                   await fetchProfile(user.value.id)
               }
           } else {
